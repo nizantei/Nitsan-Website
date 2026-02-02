@@ -1,0 +1,379 @@
+/* ===================================
+   Glitch Effect
+   =================================== */
+.glitch {
+    position: relative;
+    animation: glitch-skew 3s infinite;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+}
+
+.glitch::before {
+    animation: glitch-anim 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+    color: #00d4ff;
+    z-index: -1;
+}
+
+.glitch::after {
+    animation: glitch-anim 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse infinite;
+    color: #ff006e;
+    z-index: -2;
+}
+
+@keyframes glitch-anim {
+    0% {
+        clip-path: inset(40% 0 61% 0);
+        transform: translate(0);
+    }
+    20% {
+        clip-path: inset(92% 0 1% 0);
+        transform: translate(-2px, 2px);
+    }
+    40% {
+        clip-path: inset(43% 0 1% 0);
+        transform: translate(-2px, -2px);
+    }
+    60% {
+        clip-path: inset(25% 0 58% 0);
+        transform: translate(2px, 2px);
+    }
+    80% {
+        clip-path: inset(54% 0 7% 0);
+        transform: translate(2px, -2px);
+    }
+    100% {
+        clip-path: inset(58% 0 43% 0);
+        transform: translate(0);
+    }
+}
+
+@keyframes glitch-skew {
+    0% {
+        transform: skew(0deg);
+    }
+    10% {
+        transform: skew(-1deg);
+    }
+    20% {
+        transform: skew(1deg);
+    }
+    30% {
+        transform: skew(0deg);
+    }
+    100% {
+        transform: skew(0deg);
+    }
+}
+
+/* ===================================
+   Scroll Animations
+   =================================== */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered delays */
+.animate-on-scroll[data-delay="100"].is-visible {
+    transition-delay: 0.1s;
+}
+
+.animate-on-scroll[data-delay="150"].is-visible {
+    transition-delay: 0.15s;
+}
+
+.animate-on-scroll[data-delay="180"].is-visible {
+    transition-delay: 0.18s;
+}
+
+.animate-on-scroll[data-delay="200"].is-visible {
+    transition-delay: 0.2s;
+}
+
+.animate-on-scroll[data-delay="250"].is-visible {
+    transition-delay: 0.25s;
+}
+
+/* ===================================
+   Hover Effects
+   =================================== */
+
+/* Magnetic effect for buttons */
+.magnetic {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glow effect */
+.glow {
+    animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(0, 212, 255, 0.6),
+                    0 0 60px rgba(255, 0, 110, 0.4);
+    }
+}
+
+/* ===================================
+   Background Animations
+   =================================== */
+
+/* Gradient animation */
+.gradient-animate {
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* ===================================
+   Loading Animations
+   =================================== */
+
+/* Fade in on page load */
+.fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide up on load */
+.slide-up {
+    animation: slideUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===================================
+   Micro-interactions
+   =================================== */
+
+/* Ripple effect */
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    animation: ripple 0.6s ease-out;
+}
+
+/* Shake animation */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+/* Bounce */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+.bounce {
+    animation: bounce 1s ease;
+}
+
+/* ===================================
+   Particle Animations
+   =================================== */
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@keyframes particle-float {
+    0% {
+        transform: translate(0, 0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty));
+        opacity: 0;
+    }
+}
+
+/* ===================================
+   Text Effects
+   =================================== */
+
+/* Typing effect */
+@keyframes typing {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+@keyframes blink-caret {
+    from, to {
+        border-color: transparent;
+    }
+    50% {
+        border-color: var(--color-accent);
+    }
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 8s ease infinite;
+}
+
+/* ===================================
+   3D Effects
+   =================================== */
+
+/* Card flip */
+.flip-card {
+    perspective: 1000px;
+}
+
+.flip-card-inner {
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    backface-visibility: hidden;
+}
+
+.flip-card-back {
+    transform: rotateY(180deg);
+}
+
+/* Parallax effect */
+.parallax {
+    transition: transform 0.3s ease-out;
+}
+
+/* ===================================
+   Accessibility - Reduced Motion
+   =================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .glitch::before,
+    .glitch::after {
+        display: none;
+    }
+
+    .animate-on-scroll {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ===================================
+   Performance Optimizations
+   =================================== */
+
+/* GPU acceleration */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Remove will-change after animation */
+.animate-on-scroll.is-visible {
+    will-change: auto;
+}

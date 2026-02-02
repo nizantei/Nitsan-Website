@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nitsan - Digital Craftsman. Building stuff on the internet.">
+    <meta name="author" content="Nitsan">
+    <title>Nitsan - Digital Craftsman</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <!-- Floating particles background -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Custom cursor -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="glitch-wrapper">
+                <h1 class="hero-title glitch" data-text="Digital Craftsman">Digital Craftsman</h1>
+            </div>
+            <p class="hero-subtitle">
+                <span class="typing-text">Nitsan // Making pixels dance since forever</span>
+            </p>
+            <div class="hero-meta">
+                <span class="meta-tag">&lt;div class="cool-stuff"&gt;</span>
+            </div>
+        </div>
+        <div class="scroll-hint">scroll or don't ¯\_(ツ)_/¯</div>
+    </section>
+
+    <!-- Interactive Bento Grid -->
+    <section class="bento-section">
+        <div class="container-fluid">
+            <div class="bento-grid">
+                <!-- Big code block -->
+                <div class="bento-item big code-block animate-on-scroll">
+                    <div class="window-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="window-title">craft.js</span>
+                    </div>
+                    <pre><code><span class="keyword">const</span> <span class="var">magic</span> = <span class="keyword">await</span> <span class="func">build</span>({
+  <span class="prop">design</span>: <span class="string">'stunning'</span>,
+  <span class="prop">code</span>: <span class="string">'clean'</span>,
+  <span class="prop">coffee</span>: <span class="number">∞</span>
+});</code></pre>
+                </div>
+
+                <!-- Stats card -->
+                <div class="bento-item medium stats-card animate-on-scroll" data-delay="100">
+                    <div class="stat-number" data-target="99">0</div>
+                    <div class="stat-label">Problems solved<br>(and 3 created)</div>
+                </div>
+
+                <!-- Animated blob -->
+                <div class="bento-item small blob-container animate-on-scroll" data-delay="200">
+                    <div class="blob"></div>
+                    <p class="blob-text">This is a blob</p>
+                </div>
+
+                <!-- Tool showcase -->
+                <div class="bento-item wide tool-showcase animate-on-scroll" data-delay="150">
+                    <div class="tool-icons">
+                        <div class="tool-icon">
+                            <span class="icon">⚛️</span>
+                            <span class="tool-name">React</span>
+                        </div>
+                        <div class="tool-icon">
+                            <span class="icon">🎨</span>
+                            <span class="tool-name">CSS</span>
+                        </div>
+                        <div class="tool-icon">
+                            <span class="icon">⚡</span>
+                            <span class="tool-name">JS</span>
+                        </div>
+                        <div class="tool-icon">
+                            <span class="icon">🎭</span>
+                            <span class="tool-name">UI/UX</span>
+                        </div>
+                        <div class="tool-icon">
+                            <span class="icon">🚀</span>
+                            <span class="tool-name">Deploy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive gradient -->
+                <div class="bento-item tall gradient-card animate-on-scroll" data-delay="250">
+                    <div class="gradient-inner">
+                        <p class="gradient-text">Hover me</p>
+                    </div>
+                </div>
+
+                <!-- Fun fact -->
+                <div class="bento-item medium fun-fact animate-on-scroll" data-delay="180">
+                    <span class="quote-mark">"</span>
+                    <p>I make things that make sense. Sometimes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Carousel Section -->
+    <section class="carousel-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="meta-title">Here's a carousel!! →</h2>
+                <p class="meta-subtitle">(yes, it actually works)</p>
+            </div>
+
+            <div class="carousel-wrapper">
+                <div class="carousel" id="carousel">
+                    <div class="carousel-track">
+                        <div class="carousel-item">
+                            <div class="project-card">
+                                <div class="project-icon">🎯</div>
+                                <h3>Pixel Perfect</h3>
+                                <p>Because 1px matters</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="project-card">
+                                <div class="project-icon">⚡</div>
+                                <h3>Lightning Fast</h3>
+                                <p>Load time? What load time?</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="project-card">
+                                <div class="project-icon">🎨</div>
+                                <h3>Design++</h3>
+                                <p>Beauty meets function</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="project-card">
+                                <div class="project-icon">🔧</div>
+                                <h3>Clean Code</h3>
+                                <p>Future-me will thank me</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="project-card">
+                                <div class="project-icon">📱</div>
+                                <h3>Responsive AF</h3>
+                                <p>Works everywhere. Trust me.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-controls">
+                    <button class="carousel-btn prev" id="prevBtn">←</button>
+                    <button class="carousel-btn next" id="nextBtn">→</button>
+                </div>
+                <div class="carousel-dots" id="carouselDots"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <section class="marquee-section">
+        <div class="marquee">
+            <div class="marquee-content">
+                <span>HTML</span>
+                <span>•</span>
+                <span>CSS</span>
+                <span>•</span>
+                <span>JavaScript</span>
+                <span>•</span>
+                <span>React</span>
+                <span>•</span>
+                <span>TypeScript</span>
+                <span>•</span>
+                <span>Node.js</span>
+                <span>•</span>
+                <span>Git</span>
+                <span>•</span>
+                <span>Figma</span>
+                <span>•</span>
+                <span>Coffee</span>
+                <span>•</span>
+            </div>
+            <div class="marquee-content" aria-hidden="true">
+                <span>HTML</span>
+                <span>•</span>
+                <span>CSS</span>
+                <span>•</span>
+                <span>JavaScript</span>
+                <span>•</span>
+                <span>React</span>
+                <span>•</span>
+                <span>TypeScript</span>
+                <span>•</span>
+                <span>Node.js</span>
+                <span>•</span>
+                <span>Git</span>
+                <span>•</span>
+                <span>Figma</span>
+                <span>•</span>
+                <span>Coffee</span>
+                <span>•</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-content">
+                <div class="contact-badge">Available for work</div>
+                <h2 class="contact-title">Let's build something</h2>
+                <p class="contact-text">Got a project? Let's chat.</p>
+                <a href="mailto:nizantei@gmail.co" class="contact-button">
+                    <span class="button-text">nizantei@gmail.co</span>
+                    <span class="button-icon">→</span>
+                </a>
+                <div class="contact-meta">
+                    <span>&lt;/div&gt;</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2024 Nitsan • Digital Craftsman • Made with vanilla JS because why not</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/main.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/particles.js"></script>
+</body>
+</html>
