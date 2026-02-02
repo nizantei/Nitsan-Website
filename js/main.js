@@ -219,13 +219,13 @@ function initParallax() {
 initParallax();
 
 /**
- * Add hover tilt effect to bento items
+ * Add tilt effect to bento items (mouse and touch)
  */
 document.querySelectorAll('.bento-item').forEach(item => {
-    item.addEventListener('mousemove', function(e) {
-        const rect = this.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+    function updateTilt(clientX, clientY) {
+        const rect = item.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
 
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
@@ -233,38 +233,69 @@ document.querySelectorAll('.bento-item').forEach(item => {
         const rotateX = (y - centerY) / 10;
         const rotateY = (centerX - x) / 10;
 
-        this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+        item.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+    }
+
+    function resetTilt() {
+        item.style.transform = '';
+    }
+
+    // Mouse events
+    item.addEventListener('mousemove', function(e) {
+        updateTilt(e.clientX, e.clientY);
     });
 
-    item.addEventListener('mouseleave', function() {
-        this.style.transform = '';
+    item.addEventListener('mouseleave', resetTilt);
+
+    // Touch events for mobile
+    item.addEventListener('touchmove', function(e) {
+        const touch = e.touches[0];
+        updateTilt(touch.clientX, touch.clientY);
     });
+
+    item.addEventListener('touchend', resetTilt);
 });
 
 /**
- * Gradient card interactive effect
+ * Gradient card interactive effect (mouse and touch)
  */
 document.querySelectorAll('.gradient-card').forEach(card => {
-    card.addEventListener('mousemove', function(e) {
-        const rect = this.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+    function updateGradient(clientX, clientY) {
+        const rect = card.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * 100;
+        const y = ((clientY - rect.top) / rect.height) * 100;
 
-        this.style.background = `
+        card.style.background = `
             radial-gradient(circle at ${x}% ${y}%,
                 var(--color-gradient-1),
                 var(--color-gradient-2)
             )
         `;
+    }
+
+    function resetGradient() {
+        card.style.background = '';
+    }
+
+    // Mouse events
+    card.addEventListener('mousemove', function(e) {
+        updateGradient(e.clientX, e.clientY);
     });
 
-    card.addEventListener('mouseleave', function() {
-        this.style.background = '';
+    card.addEventListener('mouseleave', resetGradient);
+
+    // Touch events for mobile
+    card.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        updateGradient(touch.clientX, touch.clientY);
     });
+
+    card.addEventListener('touchend', resetGradient);
 });
 
 /**
- * Interactive blob with eyes that follow cursor
+ * Interactive blob with eyes that follow cursor/touch
  */
 function initInteractiveBlob() {
     const blob = document.getElementById('interactiveBlob');
@@ -277,15 +308,15 @@ function initInteractiveBlob() {
 
     const blobContainer = blob.parentElement;
 
-    blobContainer.addEventListener('mousemove', (e) => {
+    function updateBlobEyes(clientX, clientY) {
         const rect = blob.getBoundingClientRect();
         const blobCenterX = rect.left + rect.width / 2;
         const blobCenterY = rect.top + rect.height / 2;
 
-        // Calculate angle to mouse
+        // Calculate angle to pointer
         const angle = Math.atan2(
-            e.clientY - blobCenterY,
-            e.clientX - blobCenterX
+            clientY - blobCenterY,
+            clientX - blobCenterX
         );
 
         // Move pupils
@@ -293,28 +324,41 @@ function initInteractiveBlob() {
         const pupilX = Math.cos(angle) * distance;
         const pupilY = Math.sin(angle) * distance;
 
-        const leftPupil = leftEye.querySelector('::before') || leftEye;
-        const rightPupil = rightEye.querySelector('::before') || rightEye;
-
         leftEye.style.setProperty('--pupil-x', `${pupilX}px`);
         leftEye.style.setProperty('--pupil-y', `${pupilY}px`);
         rightEye.style.setProperty('--pupil-x', `${pupilX}px`);
         rightEye.style.setProperty('--pupil-y', `${pupilY}px`);
 
-        // Also rotate blob slightly toward mouse
-        const rotateX = (e.clientY - blobCenterY) / 10;
-        const rotateY = (e.clientX - blobCenterX) / 10;
+        // Also rotate blob slightly toward pointer
+        const rotateX = (clientY - blobCenterY) / 10;
+        const rotateY = (clientX - blobCenterX) / 10;
 
         blob.style.transform = `rotateX(${-rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-    });
+    }
 
-    blobContainer.addEventListener('mouseleave', () => {
+    function resetBlob() {
         leftEye.style.setProperty('--pupil-x', '0px');
         leftEye.style.setProperty('--pupil-y', '0px');
         rightEye.style.setProperty('--pupil-x', '0px');
         rightEye.style.setProperty('--pupil-y', '0px');
         blob.style.transform = '';
+    }
+
+    // Mouse events
+    blobContainer.addEventListener('mousemove', (e) => {
+        updateBlobEyes(e.clientX, e.clientY);
     });
+
+    blobContainer.addEventListener('mouseleave', resetBlob);
+
+    // Touch events for mobile
+    blobContainer.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        updateBlobEyes(touch.clientX, touch.clientY);
+    });
+
+    blobContainer.addEventListener('touchend', resetBlob);
 
     // Add CSS custom properties support
     const style = document.createElement('style');
