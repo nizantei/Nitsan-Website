@@ -364,6 +364,52 @@
 }
 
 /* ===================================
+   Splash Effects for Gradient Card
+   =================================== */
+
+/* Splash animation */
+@keyframes splashOut {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0);
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Particle float animation */
+@keyframes particleFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
+}
+
+.color-splash,
+.splash-particle {
+    pointer-events: none;
+}
+
+/* Make gradient card position relative for splashes */
+.gradient-card {
+    position: relative;
+    overflow: hidden;
+}
+
+/* ===================================
    Performance Optimizations
    =================================== */
 

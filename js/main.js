@@ -257,41 +257,130 @@ document.querySelectorAll('.bento-item').forEach(item => {
 });
 
 /**
- * Gradient card interactive effect (mouse and touch)
+ * Gradient card with crazy splash effects
  */
 document.querySelectorAll('.gradient-card').forEach(card => {
-    function updateGradient(clientX, clientY) {
+    const colors = [
+        ['#ff006e', '#8338ec'],
+        ['#06ffa5', '#00d4ff'],
+        ['#ffbe0b', '#ff006e'],
+        ['#fb5607', '#8338ec'],
+        ['#3a86ff', '#06ffa5'],
+        ['#8338ec', '#ffbe0b'],
+        ['#ff006e', '#00d4ff']
+    ];
+
+    let currentColorIndex = 0;
+
+    function createSplash(clientX, clientY) {
         const rect = card.getBoundingClientRect();
-        const x = ((clientX - rect.left) / rect.width) * 100;
-        const y = ((clientY - rect.top) / rect.height) * 100;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        // Create splash element
+        const splash = document.createElement('div');
+        splash.className = 'color-splash';
+
+        // Random color for splash
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+        splash.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, ${randomColor[0]}, ${randomColor[1]});
+            pointer-events: none;
+            animation: splashOut 0.8s ease-out forwards;
+            z-index: 10;
+        `;
+
+        card.appendChild(splash);
+
+        // Create multiple particles
+        for (let i = 0; i < 8; i++) {
+            createParticle(x, y, randomColor);
+        }
+
+        // Change card background gradient
+        currentColorIndex = (currentColorIndex + 1) % colors.length;
+        const newColors = colors[currentColorIndex];
 
         card.style.background = `
-            radial-gradient(circle at ${x}% ${y}%,
-                var(--color-gradient-1),
-                var(--color-gradient-2)
+            radial-gradient(circle at ${((x / rect.width) * 100)}% ${((y / rect.height) * 100)}%,
+                ${newColors[0]},
+                ${newColors[1]}
             )
         `;
+
+        // Remove splash after animation
+        setTimeout(() => splash.remove(), 800);
+    }
+
+    function createParticle(x, y, colors) {
+        const particle = document.createElement('div');
+        particle.className = 'splash-particle';
+
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 50 + Math.random() * 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+
+        const size = 4 + Math.random() * 8;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        particle.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: ${color};
+            pointer-events: none;
+            --tx: ${tx}px;
+            --ty: ${ty}px;
+            animation: particleFloat 1s ease-out forwards;
+            z-index: 11;
+        `;
+
+        card.appendChild(particle);
+        setTimeout(() => particle.remove(), 1000);
     }
 
     function resetGradient() {
         card.style.background = '';
     }
 
-    // Mouse events
+    // Click/tap events for splashes
+    card.addEventListener('click', function(e) {
+        createSplash(e.clientX, e.clientY);
+    });
+
+    card.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        createSplash(touch.clientX, touch.clientY);
+    });
+
+    // Mouse move for gradient effect
     card.addEventListener('mousemove', function(e) {
-        updateGradient(e.clientX, e.clientY);
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        const currentColors = colors[currentColorIndex];
+        card.style.background = `
+            radial-gradient(circle at ${x}% ${y}%,
+                ${currentColors[0]},
+                ${currentColors[1]}
+            )
+        `;
     });
 
     card.addEventListener('mouseleave', resetGradient);
-
-    // Touch events for mobile
-    card.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        updateGradient(touch.clientX, touch.clientY);
-    });
-
-    card.addEventListener('touchend', resetGradient);
 });
 
 /**
