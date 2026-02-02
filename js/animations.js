@@ -92,19 +92,6 @@ function initParallaxScroll() {
 initParallaxScroll();
 
 /**
- * Marquee auto-pause on hover
- */
-document.querySelectorAll('.marquee-content').forEach(marquee => {
-    marquee.addEventListener('mouseenter', function() {
-        this.style.animationPlayState = 'paused';
-    });
-
-    marquee.addEventListener('mouseleave', function() {
-        this.style.animationPlayState = 'running';
-    });
-});
-
-/**
  * Add reveal animations to elements in viewport
  */
 function revealOnScroll() {

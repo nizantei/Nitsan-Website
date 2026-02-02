@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSmoothScroll();
     initMagneticButtons();
     initContactButton();
+    initInteractiveBlob();
 });
 
 /**
@@ -261,6 +262,69 @@ document.querySelectorAll('.gradient-card').forEach(card => {
         this.style.background = '';
     });
 });
+
+/**
+ * Interactive blob with eyes that follow cursor
+ */
+function initInteractiveBlob() {
+    const blob = document.getElementById('interactiveBlob');
+    if (!blob) return;
+
+    const leftEye = blob.querySelector('.blob-eye.left');
+    const rightEye = blob.querySelector('.blob-eye.right');
+
+    if (!leftEye || !rightEye) return;
+
+    const blobContainer = blob.parentElement;
+
+    blobContainer.addEventListener('mousemove', (e) => {
+        const rect = blob.getBoundingClientRect();
+        const blobCenterX = rect.left + rect.width / 2;
+        const blobCenterY = rect.top + rect.height / 2;
+
+        // Calculate angle to mouse
+        const angle = Math.atan2(
+            e.clientY - blobCenterY,
+            e.clientX - blobCenterX
+        );
+
+        // Move pupils
+        const distance = 3; // Distance pupils can move
+        const pupilX = Math.cos(angle) * distance;
+        const pupilY = Math.sin(angle) * distance;
+
+        const leftPupil = leftEye.querySelector('::before') || leftEye;
+        const rightPupil = rightEye.querySelector('::before') || rightEye;
+
+        leftEye.style.setProperty('--pupil-x', `${pupilX}px`);
+        leftEye.style.setProperty('--pupil-y', `${pupilY}px`);
+        rightEye.style.setProperty('--pupil-x', `${pupilX}px`);
+        rightEye.style.setProperty('--pupil-y', `${pupilY}px`);
+
+        // Also rotate blob slightly toward mouse
+        const rotateX = (e.clientY - blobCenterY) / 10;
+        const rotateY = (e.clientX - blobCenterX) / 10;
+
+        blob.style.transform = `rotateX(${-rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+    });
+
+    blobContainer.addEventListener('mouseleave', () => {
+        leftEye.style.setProperty('--pupil-x', '0px');
+        leftEye.style.setProperty('--pupil-y', '0px');
+        rightEye.style.setProperty('--pupil-x', '0px');
+        rightEye.style.setProperty('--pupil-y', '0px');
+        blob.style.transform = '';
+    });
+
+    // Add CSS custom properties support
+    const style = document.createElement('style');
+    style.textContent = `
+        .blob-eye::before {
+            transform: translate(var(--pupil-x, 0px), var(--pupil-y, 0px));
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 /**
  * Konami code easter egg
