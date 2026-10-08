@@ -1,0 +1,144 @@
+{
+  "meta": {
+    "name": "Nitsan",
+    "role": "Developer · Speaker · Builder",
+    "tagline": "Apps I've shipped, talks I've given, and the skills behind them.",
+    "email": "hello@example.com",
+    "outroTitle": "Let's build something",
+    "outroText": "Placeholder contact block: replace the email and links in work/data/content.json.",
+    "links": [
+      { "label": "GitHub", "url": "https://github.com/" },
+      { "label": "LinkedIn", "url": "https://www.linkedin.com/" }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "apps",
+      "label": "Apps",
+      "title": "Apps I developed",
+      "intro": "Products I designed and built end to end. Sample entries: replace them with your real apps.",
+      "reveal": "orbit",
+      "items": [
+        {
+          "title": "Atlas",
+          "meta": "Sample · 2025 · iOS & Android",
+          "description": "Placeholder description. Tell the story in two or three sentences: the problem, what you built, and the result.",
+          "image": "media/placeholder/app-atlas.svg",
+          "alt": "Placeholder cover for the Atlas sample app",
+          "tags": ["React Native", "TypeScript", "Firebase"],
+          "links": [{ "label": "Website", "url": "#" }]
+        },
+        {
+          "title": "Pulse",
+          "meta": "Sample · 2024 · Web app",
+          "description": "Placeholder description. Mention your role, the stack, and one number that shows impact.",
+          "image": "media/placeholder/app-pulse.svg",
+          "alt": "Placeholder cover for the Pulse sample app",
+          "tags": ["React", "Node.js", "PostgreSQL"],
+          "links": [{ "label": "Live", "url": "#" }, { "label": "Code", "url": "#" }]
+        },
+        {
+          "title": "Harbor",
+          "meta": "Sample · 2024 · Desktop",
+          "description": "Placeholder description. Items without links or tags are fine: every field except the title is optional.",
+          "image": "media/placeholder/app-harbor.svg",
+          "alt": "Placeholder cover for the Harbor sample app",
+          "tags": ["Electron"]
+        },
+        {
+          "title": "Lumen",
+          "meta": "Sample · 2023 · iOS",
+          "description": "Placeholder description. Add or remove items freely; the scroll length and 3D objects adapt to the count.",
+          "image": "media/placeholder/app-lumen.svg",
+          "alt": "Placeholder cover for the Lumen sample app",
+          "tags": ["Swift", "SwiftUI"]
+        }
+      ]
+    },
+    {
+      "id": "talks",
+      "label": "Talks",
+      "title": "Talks I gave",
+      "intro": "Conference talks, meetups and workshops. Sample entries.",
+      "reveal": "stage",
+      "items": [
+        {
+          "title": "Building for the web in 3D",
+          "meta": "Sample conference · Tel Aviv · 2025",
+          "description": "Placeholder abstract. One or two sentences on what the audience took away.",
+          "image": "media/placeholder/talk-3d-web.svg",
+          "alt": "Placeholder slide for a talk about 3D on the web",
+          "links": [{ "label": "Recording", "url": "#" }, { "label": "Slides", "url": "#" }]
+        },
+        {
+          "title": "Shipping fast without breaking things",
+          "meta": "Sample meetup · 2024",
+          "description": "Placeholder abstract.",
+          "image": "media/placeholder/talk-shipping.svg",
+          "alt": "Placeholder slide for a talk about shipping fast"
+        },
+        {
+          "title": "From idea to App Store",
+          "meta": "Sample workshop · 2023",
+          "description": "Placeholder abstract.",
+          "image": "media/placeholder/talk-app-store.svg",
+          "alt": "Placeholder slide for a workshop about launching apps"
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "label": "Skills",
+      "title": "My skill set",
+      "intro": "The tools and practices I work with every day.",
+      "reveal": "constellation",
+      "items": [
+        { "title": "Frontend", "meta": "Interfaces", "tags": ["HTML", "CSS", "JavaScript", "TypeScript", "React"] },
+        { "title": "Backend", "meta": "Services & data", "tags": ["Node.js", "REST APIs", "SQL"] },
+        { "title": "3D & motion", "meta": "Interactive", "tags": ["Three.js", "WebGL", "Animation"] },
+        { "title": "Craft", "meta": "How I work", "tags": ["Figma", "Git", "Testing", "CI/CD"] }
+      ]
+    },
+    {
+      "id": "certifications",
+      "label": "Certifications",
+      "title": "Trainings & certifications",
+      "intro": "Courses, trainings and certificates. Sample entries.",
+      "reveal": "medals",
+      "items": [
+        {
+          "title": "Sample Cloud Certification",
+          "meta": "Issuer · 2025",
+          "description": "Placeholder. Add a credential link if the issuer provides one.",
+          "image": "media/placeholder/cert-cloud.svg",
+          "alt": "Placeholder badge",
+          "links": [{ "label": "Verify", "url": "#" }]
+        },
+        {
+          "title": "Sample Security Training",
+          "meta": "Issuer · 2024",
+          "image": "media/placeholder/cert-security.svg",
+          "alt": "Placeholder badge"
+        },
+        {
+          "title": "Sample UX Course",
+          "meta": "Issuer · 2024",
+          "image": "media/placeholder/cert-ux.svg",
+          "alt": "Placeholder badge"
+        },
+        {
+          "title": "Sample Leadership Program",
+          "meta": "Issuer · 2023",
+          "image": "media/placeholder/cert-leadership.svg",
+          "alt": "Placeholder badge"
+        },
+        {
+          "title": "Sample Data Course",
+          "meta": "Issuer · 2022",
+          "image": "media/placeholder/cert-data.svg",
+          "alt": "Placeholder badge"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "work-page-tools",
+  "private": true,
+  "description": "Dev tooling for the /work/ page. Not deployed as a build step: the page itself is static.",
+  "type": "module",
+  "scripts": {
+    "vendor": "node vendor.mjs",
+    "placeholder": "node make-placeholder.mjs",
+    "media": "node make-media.mjs",
+    "serve": "http-server ../.. -p 8080 -c-1 --silent",
+    "shots": "node screenshots.mjs",
+    "poster": "node make-poster.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "esbuild": "0.28.2",
+    "lenis": "1.3.26",
+    "meshoptimizer": "1.3.0",
+    "playwright": "1.56.1",
+    "three": "0.186.1"
+  }
+}

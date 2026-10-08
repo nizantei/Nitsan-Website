@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nitsan · Work</title>
+  <meta name="description" content="Apps, talks, skills and certifications by Nitsan.">
+  <!-- Work in progress: remove before linking this page from the main site. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#05060d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305060d'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='17' fill='%2300d4ff' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/work/css/work.css">
+
+  <script>document.documentElement.classList.replace('no-js', 'js');</script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/work/vendor/three.module.min.js",
+        "three/addons": "/work/vendor/three-addons.min.js",
+        "lenis": "/work/vendor/lenis.min.js"
+      }
+    }
+  </script>
+  <link rel="modulepreload" href="/work/vendor/three.module.min.js">
+  <link rel="modulepreload" href="/work/js/scene/stage.js">
+  <script type="module" src="/work/js/main.js"></script>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+
+  <!-- Layers, back to front: backdrop (behind the figure) → WebGL canvas → labels → page content -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="backdrop__name" data-meta="name">Nitsan</div>
+  </div>
+  <canvas class="webgl" aria-hidden="true"></canvas>
+  <img class="poster" data-src="/work/media/poster.webp" alt="" aria-hidden="true">
+  <div class="labels" aria-hidden="true"></div>
+
+  <div class="loader" role="status" aria-live="polite">
+    <div class="loader__inner">
+      <span class="loader__label">Loading</span>
+      <span class="loader__pct" data-loader-pct>0%</span>
+    </div>
+    <div class="loader__bar"><i data-loader-bar></i></div>
+  </div>
+
+  <header class="topbar">
+    <a class="topbar__brand" href="#top"><span data-meta="name">Nitsan</span> <span class="topbar__dim">/ work</span></a>
+    <nav class="topbar__nav" aria-label="Sections"><ol data-chapter-nav></ol></nav>
+    <div class="topbar__progress" aria-hidden="true"><i></i></div>
+  </header>
+
+  <main id="content">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <p class="hero__kicker" data-meta="role"></p>
+        <h1 class="hero__title" id="hero-title" data-meta="name">Nitsan</h1>
+        <p class="hero__tagline" data-meta="tagline"></p>
+      </div>
+      <p class="hero__cue" aria-hidden="true"><span>Scroll</span><i></i></p>
+    </section>
+
+    <div data-chapters></div>
+
+    <section class="outro" id="contact" aria-labelledby="outro-title">
+      <div class="outro__copy">
+        <p class="outro__kicker">Contact</p>
+        <h2 class="outro__title" id="outro-title" data-meta="outroTitle">Let's build something</h2>
+        <p class="outro__text" data-meta="outroText"></p>
+        <p class="outro__actions" data-outro-actions></p>
+      </div>
+    </section>
+  </main>
+
+  <noscript>
+    <p class="noscript">This page needs JavaScript to load its content.</p>
+  </noscript>
+  <div class="hud" hidden></div>
+</body>
+</html>
