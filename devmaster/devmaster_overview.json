@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "name": "Nitsan Portfolio",
+  "description": "Personal portfolio website — Digital Craftsman landing page with interactive bento grid, particle effects, and carousel",
+  "status": "active",
+  "priority": "high",
+  "tags": ["portfolio", "static-site", "vanilla-js", "css-animations", "personal-brand"],
+  "ports": {
+    "dev": [5500],
+    "custom": { "liveServer": 5500 }
+  },
+  "commands": {
+    "dev": "open index.html (or VS Code Live Server on port 5500)"
+  },
+  "architecture": {
+    "type": "static-html",
+    "entry": "index.html",
+    "styling": "Custom CSS (styles.css + animations.css)",
+    "notes": "Vanilla HTML/CSS/JS portfolio with no build step. Features: glitch text effect, interactive blob, bento grid layout, skill carousel, particle background, custom cursor, scroll-triggered animations, marquee ticker. Google Fonts: Space Grotesk + JetBrains Mono."
+  },
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/nizantei/Nitsan-Website" }
+  ],
+  "dashboard": {
+    "pinned": true,
+    "group": "Personal"
+  }
+}

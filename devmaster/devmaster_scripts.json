@@ -1,0 +1,7 @@
+{
+  "commands": {
+    "dev": "open index.html (or use VS Code Live Server)",
+    "deploy": "git push origin main"
+  },
+  "scripts": {}
+}

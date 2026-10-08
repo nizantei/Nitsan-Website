@@ -1,0 +1,163 @@
+{
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "MVP Launch",
+      "description": "Core portfolio site with all sections live and polished",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Hero section with glitch text effect",
+          "status": "done",
+          "category": "feature",
+          "priority": "critical"
+        },
+        {
+          "id": "t2",
+          "title": "Interactive bento grid layout",
+          "status": "done",
+          "category": "feature",
+          "priority": "critical"
+        },
+        {
+          "id": "t3",
+          "title": "Skills carousel with navigation",
+          "status": "done",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t4",
+          "title": "Particle background animation",
+          "status": "done",
+          "category": "feature",
+          "priority": "medium"
+        },
+        {
+          "id": "t5",
+          "title": "Contact section with email link",
+          "status": "done",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t6",
+          "title": "Scroll-triggered animations",
+          "status": "done",
+          "category": "feature",
+          "priority": "medium"
+        },
+        {
+          "id": "t7",
+          "title": "Custom cursor effect",
+          "status": "done",
+          "category": "design",
+          "priority": "low"
+        },
+        {
+          "id": "t8",
+          "title": "Tech stack marquee ticker",
+          "status": "done",
+          "category": "feature",
+          "priority": "low"
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Polish & Mobile",
+      "description": "Mobile optimization, touch support, and visual refinements",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "t9",
+          "title": "Mobile responsive optimization",
+          "status": "done",
+          "category": "feature",
+          "priority": "critical"
+        },
+        {
+          "id": "t10",
+          "title": "Touch support for interactive elements",
+          "status": "done",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t11",
+          "title": "Professional UX polish pass",
+          "status": "done",
+          "category": "design",
+          "priority": "high"
+        },
+        {
+          "id": "t12",
+          "title": "Explosive splash effects on gradient card",
+          "status": "done",
+          "category": "feature",
+          "priority": "medium"
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "V2 — Content & Presence",
+      "description": "Add real project showcases, social links, and deploy to a custom domain",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "t13",
+          "title": "Add real project showcase section",
+          "status": "todo",
+          "category": "feature",
+          "priority": "critical"
+        },
+        {
+          "id": "t14",
+          "title": "Add social media links (GitHub, LinkedIn, etc.)",
+          "status": "todo",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t15",
+          "title": "Deploy to custom domain / hosting",
+          "status": "todo",
+          "category": "devops",
+          "priority": "high"
+        },
+        {
+          "id": "t16",
+          "title": "Add favicon and Open Graph meta tags",
+          "status": "todo",
+          "category": "feature",
+          "priority": "medium"
+        },
+        {
+          "id": "t17",
+          "title": "SEO and performance audit",
+          "status": "todo",
+          "category": "refactor",
+          "priority": "medium"
+        }
+      ]
+    }
+  ],
+  "currentTasks": [
+    {
+      "id": "ct1",
+      "title": "Fix contact email typo (gmail.co → gmail.com?)",
+      "status": "todo",
+      "category": "bugfix",
+      "priority": "high"
+    },
+    {
+      "id": "ct2",
+      "title": "Update footer copyright year from 2024",
+      "status": "todo",
+      "category": "bugfix",
+      "priority": "low"
+    }
+  ]
+}

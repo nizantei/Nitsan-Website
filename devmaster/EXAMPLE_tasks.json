@@ -1,0 +1,73 @@
+{
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundation",
+      "description": "Project setup, auth, and base UI",
+      "targetDate": "2025-02-15",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Initialize Next.js project",
+          "status": "done",
+          "category": "devops",
+          "priority": "high"
+        },
+        {
+          "id": "t2",
+          "title": "Set up authentication",
+          "status": "done",
+          "category": "feature",
+          "priority": "critical"
+        },
+        {
+          "id": "t3",
+          "title": "Design system components",
+          "status": "done",
+          "category": "design",
+          "priority": "high"
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Core Analytics",
+      "description": "Main dashboard views and data pipelines",
+      "targetDate": "2025-04-15",
+      "status": "in-progress",
+      "tasks": [
+        {
+          "id": "t4",
+          "title": "Sales overview chart",
+          "status": "done",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t5",
+          "title": "Revenue breakdown page",
+          "status": "in-progress",
+          "category": "feature",
+          "priority": "high"
+        },
+        {
+          "id": "t6",
+          "title": "Data export API",
+          "status": "todo",
+          "category": "feature",
+          "priority": "medium"
+        }
+      ]
+    }
+  ],
+  "currentTasks": [
+    {
+      "id": "ct1",
+      "title": "Update README with setup instructions",
+      "status": "todo",
+      "category": "docs",
+      "priority": "low"
+    }
+  ]
+}
