@@ -1,0 +1,113 @@
+{
+  "_doc": "Everything that defines the character. Notes become edits here, then: ./build.sh",
+  "height_m": 1.8,
+  "macros": {
+    "_doc": "MakeHuman macro sliders, 0..1. age 0.5 = 25 years, 1.0 = 90 years.",
+    "gender": 1.0,
+    "age": 0.54,
+    "muscle": 0.75,
+    "weight": 0.45,
+    "height": 0.55,
+    "proportions": 0.6,
+    "african": 0.0,
+    "asian": 0.0,
+    "caucasian": 1.0
+  },
+  "body": {
+    "_doc": "Extra body targets (name relative to targets/, weight). Unsided names apply to both sides.",
+    "torso/torso-vshape-incr": 0.45,
+    "torso/torso-muscle-pectoral-incr": 0.35,
+    "torso/torso-muscle-dorsi-incr": 0.3,
+    "torso/measure-waist-circ-decr": 0.2,
+    "arms/upperarm-muscle-incr": 0.85,
+    "arms/upperarm-shoulder-muscle-incr": 0.7,
+    "arms/lowerarm-muscle-incr": 0.55,
+    "neck/neck-scale-horiz-incr": 0.6,
+    "arms/upperarm-scale-horiz-incr": 0.3,
+    "torso/torso-scale-horiz-incr": 0.2,
+    "neck/neck-scale-depth-incr": 0.35
+  },
+  "face": {
+    "_doc": "Face fitted to the photo's landmarks. regularization: higher = closer to the generic face. residual: 0..1, how much of the leftover landmark error is warped away.",
+    "regularization": 0.04,
+    "expression_regularization": 0.01,
+    "residual": 0.85,
+    "groups": [
+      "head",
+      "forehead",
+      "eyebrows",
+      "eyes",
+      "nose",
+      "mouth",
+      "chin",
+      "cheek"
+    ],
+    "expression_units": [
+      "mouth-corner-puller",
+      "mouth-upward-retraction",
+      "mouth-open",
+      "mouth-parling",
+      "mouth-retraction",
+      "mouth-elevation",
+      "eye-left-slit",
+      "eye-right-slit",
+      "eyebrows-left-down",
+      "eyebrows-right-down"
+    ]
+  },
+  "outfit": {
+    "_doc": "Lengths in MakeHuman units (decimeters, 1 = 10 cm). Colors are sRGB hex; null = measured from the photo.",
+    "tee": {
+      "color": null,
+      "offset": 0.05,
+      "sleeve_length": 0.5,
+      "collar": 0.5,
+      "smooth": 2
+    },
+    "pants": {
+      "color": null,
+      "offset": 0.17,
+      "thigh_radius": 1.0,
+      "hem_radius": 0.64,
+      "waist_above_hip": 0.55,
+      "hem_above_ankle": -0.25
+    },
+    "belt": {
+      "color": "#1b1b1d",
+      "height": 0.36,
+      "offset": 0.04
+    },
+    "sneakers": {
+      "upper": "#f7f6f2",
+      "sole": "#e9e7e1",
+      "laces": "#ffffff",
+      "sole_thickness": 0.32,
+      "margin": 0.09
+    }
+  },
+  "pose": {
+    "_doc": "Crossed arms from the photo: wrist/elbow positions in photo pixels; depth in decimeters in front of the torso surface. Angles in degrees.",
+    "right_wrist_px": [
+      730,
+      1110
+    ],
+    "right_wrist_depth": 0.55,
+    "left_wrist_px": [
+      470,
+      1115
+    ],
+    "left_wrist_depth": 0.2,
+    "right_elbow_px": [
+      303,
+      1239
+    ],
+    "left_elbow_px": [
+      906,
+      1153
+    ],
+    "elbow_forward": 0.9,
+    "pole_angle": -90,
+    "finger_curl": 30,
+    "thumb_curl": 10
+  }
+}

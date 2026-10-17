@@ -4,8 +4,15 @@
 
 export const CONFIG = {
   model: {
-    url: 'models/placeholder-figure.glb', // relative to /work/; swap for the real model
-    height: 1.8, // the model is scaled to this height (scene units = meters)
+    // Built by work/tools/model (see its README). Relative to /work/.
+    url: 'models/nitsan.glb',
+    urlLow: 'models/nitsan-mobile.glb', // used on the low quality tier (phones)
+    height: 1.83, // the model is scaled to this height in meters (1.80 m + sneaker soles)
+  },
+
+  figure: {
+    rim: 0.4, // fresnel edge light on the figure at rest (brand colors)
+    rimTravel: 0.9, // extra rim glow while it turns between sections
   },
 
   scroll: {

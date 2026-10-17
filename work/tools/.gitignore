@@ -2,3 +2,6 @@ node_modules/
 # Raw model generations and intermediate files are large; keep them out of git and out of the deploy.
 model/source/
 model/build/
+model/.venv/
+model/cache/
+model/__pycache__/

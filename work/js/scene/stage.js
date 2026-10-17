@@ -38,7 +38,8 @@ export async function createStage({ canvas, env, content, config, onProgress }) 
   scene.add(key, rimA, rimB, new THREE.HemisphereLight('#3a4a9a', '#05060d', 0.6));
 
   const figureUniforms = createFigureUniforms(C);
-  const { root: figure } = await loadFigure(asset(config.model.url), {
+  const modelUrl = env.quality === 'low' && config.model.urlLow ? config.model.urlLow : config.model.url;
+  const { root: figure } = await loadFigure(asset(modelUrl), {
     height: config.model.height,
     uniforms: figureUniforms,
     onProgress,
@@ -141,7 +142,7 @@ export async function createStage({ canvas, env, content, config, onProgress }) 
     figureUniforms.uScanY.value = introScan ? figureUniforms.uReveal.value - 0.02 : lerp(-0.1, H + 0.1, state.travel);
     figureUniforms.uScan.value = motion ? (introScan ? 1 : energy) : 0;
     figureUniforms.uHolo.value = L(figureUniforms.uHolo.value, motion ? energy * 0.9 : 0, 6);
-    figureUniforms.uRim.value = 0.9 + energy * 0.7;
+    figureUniforms.uRim.value = config.figure.rim + energy * config.figure.rimTravel;
 
     // particles
     formation.lerp(target4.fromArray(state.formation), motion && !first ? 1 - Math.exp(-2.2 * dt) : 1);

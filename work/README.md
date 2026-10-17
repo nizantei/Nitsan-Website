@@ -54,14 +54,15 @@ Name, tagline, email and outro links are under `meta`.
   formations, quality tiers, colors, model URL and height.
 - `css/work.css`: `--lead` (scroll length of each transition) and `--beat` (scroll per item).
 
-## Swap in the real model
+## The 3D character
 
-1. Put the optimized GLB in `models/` and set `CONFIG.model.url` in `js/config.js`.
-   Any glTF works: the page scales it to `CONFIG.model.height`, stands it on the floor,
-   and layers the scan, dissolve and rim effects onto its own materials.
-2. Regenerate the no-WebGL still: `cd tools && npm run serve` (one terminal), then `npm run poster`.
+`models/nitsan.glb` (desktop) and `models/nitsan-mobile.glb` (phones) are built from the photo in
+`Nitsan photo/` with free tools only (MakeHuman CC0 body, MediaPipe, Blender as a Python module).
+The pipeline, how to rebuild it, and how notes map to settings: `tools/model/README.md`.
 
-The photo-to-3D plan is in `tools/model/README.md`.
+Any glTF works in the page: it is scaled to `CONFIG.model.height`, stood on the floor, and the
+scan, dissolve and rim effects are layered onto its own materials. After changing the model,
+regenerate the no-WebGL still: `cd tools && npm run serve` (one terminal), then `npm run poster`.
 
 ## How it works
 
@@ -77,7 +78,7 @@ js/scroller.js      native scroll + Lenis smoothing on desktop
 js/ui.js            active states, nav, keyboard focus, progress, debug HUD
 js/scene/           Three.js: stage, figure effects, particles, floor, reveals, helpers
 vendor/             pinned three.js + Lenis builds (see vendor/VERSIONS.txt)
-tools/              dev scripts: vendoring, placeholder model, media, poster, screenshots
+tools/              dev scripts: vendoring, media, poster, screenshots; tools/model = character pipeline
 ```
 
 Scroll model: each section is a tall track with a sticky full-screen frame, so the page
@@ -98,7 +99,7 @@ Fallbacks:
 ```bash
 cd work/tools && npm install
 npm run vendor        # rebuild vendor/ after changing three/lenis versions in package.json
-npm run placeholder   # regenerate models/placeholder-figure.glb
+npm run placeholder   # the old stand-in mannequin (models/placeholder-figure.glb), if ever needed
 npm run media         # regenerate placeholder images
 npm run serve         # local server on :8080 (repo root)
 npm run poster        # render media/poster.webp (needs the server)

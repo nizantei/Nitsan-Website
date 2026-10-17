@@ -1,0 +1,6 @@
+# Python 3.13. MediaPipe also needs the system library libEGL (apt: libegl1).
+bpy==5.2.2
+mediapipe==1.1.0
+numpy
+scipy
+pillow
