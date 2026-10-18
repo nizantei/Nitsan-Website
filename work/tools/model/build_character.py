@@ -2,7 +2,8 @@
 
   - skeleton from MPFB2's default rig (joint positions follow the fitted body)
   - crossed arms by IK, with wrist/elbow targets placed from the photo
-  - tee / trousers / belt cut from the body surface, procedural sneakers, mouth fill
+  - tee / trousers / belt cut from the body surface, sneakers fitted to the feet (shoes.py), mouth fill
+  - eyes with a procedural iris, necklace and bead bracelet traced from the photo (extras.py)
   - body faces hidden under clothes removed; head and arm skin split into separate objects
   - UVs packed per object; position / normal / visibility maps baked for texture.py
 
@@ -26,9 +27,11 @@ from PIL import Image
 
 import bl
 import cameras
+import extras
 import garments as G
 import mh
 import shape
+import shoes
 
 BUILD = HERE / 'build'
 S = 0.1  # MakeHuman decimeters → meters
@@ -214,16 +217,25 @@ def build(ch, preview_only=False):
                     & ((reg['leg'][pants_used] < 0.85) | (np.abs(V[pants_used, 0]) < 0.75)))[0]
     pants_P = G.smooth(pants_P, nb, seat, 30, 0.5)
     pants_P = G.flatten_fly(pants_P, pants_used, V, crotch_y)
+    pants_P = G.fill_crotch(pants_P, pants_used, V, crotch_y)
     pants_P = G.smooth(pants_P, nb, seat, 6, 0.5)
     pants_P = G.smooth(pants_P, nb, np.arange(len(pants_used)), 3, 0.45, fixed=G.boundary_vertices(pants_f))
     hem = [k for k in G.boundary_loops_neighbors(pants_f) if pants_P[k, 1] < hip_y - 3]
+    if hem:  # stretch the lower legs so the hem reaches its target height (over the shoe)
+        knee_y = (J['joint-l-knee'][1] + J['joint-r-knee'][1]) / 2
+        target = ankle_y + out['pants']['hem_above_ankle']
+        cur = pants_P[hem, 1].min()
+        if cur > target:
+            low = pants_P[:, 1] < knee_y
+            pants_P[low, 1] = knee_y + (pants_P[low, 1] - knee_y) * (knee_y - target) / (knee_y - cur)
     hem_y = pants_P[hem, 1].min() if hem else None
     if hem:
         pants_P[hem, 1] = hem_y
         pants_P = G.smooth_boundary(pants_P, pants_f, iters=6, select=lambda p: p[1] < hip_y - 3)
     pants_P = G.smooth_boundary(pants_P, pants_f, iters=6, select=lambda p: p[1] > belt_y - 0.5)
     pants_P = G.keep_clearance(pants_P, pants_used, V, FB, out['pants']['offset'] * 0.7)
-    belt_v, belt_f, buckle_v, buckle_f = G.belt(pants_P, out['belt'], belt_y)
+    belt_v, belt_f, belt_uv, belt_uvf, (buckle_v, buckle_f) = G.belt_solid(pants_P, out['belt'], belt_y)
+    loops_v, loops_f = G.belt_loops(pants_P, belt_y, out['belt'])
 
     # Body faces hidden by clothes: everything under the tee (except a margin at the collar and
     # sleeves), everything under the trousers, and the feet.
@@ -271,9 +283,7 @@ def build(ch, preview_only=False):
     col = bpy.data.collections.new('character')
     bpy.context.scene.collection.children.link(col)
     objs = {}
-    eye_fm = np.isin(fg, ['helper-l-eye', 'helper-r-eye'])
-    hf = np.vstack([FB[head_f], F[eye_fm]])
-    hfu = np.vstack([FUB[head_f], FU[eye_fm]])
+    hf, hfu = FB[head_f], FUB[head_f]
     used, hf_local = G.submesh(hf, np.ones(len(hf), bool))
     mf_v, mf_f = G.mouth_fill(Vp, corr)
     head_P = np.vstack([Vp[used], mf_v])
@@ -283,9 +293,8 @@ def build(ch, preview_only=False):
     uv_all = np.vstack([UV, mf_uv])
     head_uvf = np.vstack([hfu, np.arange(len(mf_v))[mf_f] + len(UV)])
     objs['head'] = make_object('head', head_P, head_faces, uv_all, head_uvf, col)
-    # Mouth fill and eyeballs always take the photo (lips and lids would block visibility rays).
-    eye_v = np.isin(used, np.r_[mh.vertex_groups()['helper-l-eye'], mh.vertex_groups()['helper-r-eye']])
-    force = np.r_[eye_v.astype(np.float32), np.ones(len(mf_v), np.float32)]
+    # The mouth fill always takes the photo (the lips would block visibility rays).
+    force = np.r_[np.zeros(len(used), np.float32), np.ones(len(mf_v), np.float32)]
     attr = objs['head'].data.attributes.new('force_photo', 'FLOAT', 'POINT')
     attr.data.foreach_set('value', force)
 
@@ -293,16 +302,67 @@ def build(ch, preview_only=False):
     objs['skin'] = make_object('skin', Vp[used], f_local, UV, FUB[skin_f], col)
     objs['tee'] = make_object('tee', teeP, tee_f, UV, FUB[tee_fm], col)
     objs['pants'] = make_object('pants', pants_P, pants_f, UV, FUB[pants_fm], col)
-    n = len(belt_v) // 2  # two rings; UVs get an extra seam column so the wrap-around quad doesn't span the map
-    belt_uv = np.array([[k / n, r] for r in (0, 1) for k in range(n + 1)])
-    belt_uvf = np.array([[i, i + 1, n + 1 + i + 1, n + 1 + i] for i in range(n)])
     objs['belt'] = make_object('belt', belt_v, belt_f, belt_uv, belt_uvf, col, recalc=True)
     objs['buckle'] = make_object('buckle', buckle_v, buckle_f, collection=col, recalc=True)
+    objs['loops'] = make_object('loops', loops_v, loops_f, collection=col, recalc=True)
     for side in ('l', 'r'):
-        upper, sole, laces = G.sneaker(V, reg, side, out['sneakers'])
-        objs[f'shoe_{side}'] = make_object(f'shoe_{side}', *upper, collection=col, recalc=True)
-        objs[f'sole_{side}'] = make_object(f'sole_{side}', *sole, collection=col, recalc=True)
-        objs[f'laces_{side}'] = make_object(f'laces_{side}', *laces, collection=col, recalc=True)
+        frame = shoes.foot_frame(V, reg, side, J, floor)
+        frame['floor'] = floor
+        objs[f'shoe_{side}'] = shoes.place(side, frame, out['sneakers'], to_bl, col)
+
+    # Eyes: the posed MakeHuman eyeballs, UVs aimed where the photo shows each iris.
+    eyes = {}
+    for side, iris_lm in (('l', 473), ('r', 468)):
+        idx = mh.vertex_groups()[f'helper-{side}-eye']
+        efm = fg == f'helper-{side}-eye'
+        e_used, e_f = G.submesh(F, efm)
+        ob = make_object(f'eye_{side}', Vp[e_used], e_f, collection=col)
+        c_mh = Vp[idx].mean(0)
+        r_mh = float(np.median(np.linalg.norm(Vp[idx] - c_mh, axis=1)))
+        g_mh = extras.gaze_from_photo(c_mh, r_mh, np.asarray(head_cam), face_json['points'][iris_lm])
+        c = to_bl(c_mh[None])[0]
+        radius = r_mh * S
+        gaze = to_bl(g_mh[None])[0]
+        iris_uv = extras.aim_eye_uvs(ob, c, gaze, radius)
+        objs[f'eye_{side}'] = ob
+        eyes[side] = {'center': c.tolist(), 'radius': radius, 'iris_uv': iris_uv}
+
+    # Necklace over the neck and tee; bead bracelet on the left forearm.
+    acc = ch['accessories']
+    surf = extras.bvh_of([objs['head'], objs['tee']])
+    def cam_ray(px):
+        a, b = cam_body.unproject(px, 0.0), cam_body.unproject(px, -2.0)
+        o = to_bl(cam_body.cam[None])[0]
+        d = to_bl(b[None])[0] - to_bl(a[None])[0]
+        return o, d / np.linalg.norm(d)
+    neck_c = to_bl(J['joint-neck'][None])[0]
+    path = extras.chain_path(acc['necklace_px'], cam_ray, surf, (neck_c, None), lift=0.0011)
+    clasp = None
+    o, dvec = cam_ray(acc['clasp_px'])
+    hit = surf.ray_cast(Vector(o), Vector(dvec), 10.0)[0]
+    if hit is not None:
+        clasp = np.array(hit)
+    cv, cf = extras.cable_chain(path, clasp_at=clasp)
+    objs['necklace'] = extras.make('necklace', cv, cf, col)
+
+    arm_bvh = extras.bvh_of([objs['skin']])
+    rig_mw = np.array(rig_ob.matrix_world)
+    def bone_pt(name, tail=False):
+        b = rig_ob.pose.bones[name]
+        p = np.array((b.tail if tail else b.head)[:] + (1.0,))
+        return (rig_mw @ p)[:3]
+    elbow, wrist = bone_pt('lowerarm01.L'), bone_pt('lowerarm02.L', tail=True)
+    o, dvec = cam_ray(acc['bracelet_px'])
+    axis = wrist - elbow
+    # point on the forearm axis closest to the photo ray through the beads
+    w0 = elbow - o
+    a_, b_, c_ = axis @ axis, axis @ dvec, dvec @ dvec
+    t = np.clip((b_ * (dvec @ w0) - c_ * (axis @ w0)) / (a_ * c_ - b_ * b_), 0.55, 0.97)
+    center = elbow + t * axis
+    br = acc['bead_radius']
+    ring_r = extras.surface_radius(arm_bvh, center, axis) + br * 0.9
+    bv, bf = extras.bead_ring(center, axis, ring_r, br)
+    objs['bracelet'] = extras.make('bracelet', bv, bf, col)
 
     meta = {
         'body_cam': cam_body.to_json(), 'head_cam': np.asarray(head_cam).tolist(), 'cam_info': cam_info,
@@ -310,6 +370,14 @@ def build(ch, preview_only=False):
         'eye_y': float((V[mh.vertex_groups()['helper-l-eye']].mean(0)[1] + V[mh.vertex_groups()['helper-r-eye']].mean(0)[1]) / 2),
         'eyes_bl': [to_bl(Vp[mh.vertex_groups()[f'helper-{s}-eye']].mean(0)).tolist() for s in ('l', 'r')],
         'eye_radius_bl': float(np.linalg.norm(Vp[mh.vertex_groups()['helper-l-eye']] - Vp[mh.vertex_groups()['helper-l-eye']].mean(0), axis=1).max() * S), 'targets': {k: {kk: vv.tolist() for kk, vv in v.items()} for k, v in targets.items()},
+        'eyes': eyes,
+        'tailor': {
+            'legs': {sd: {'hip': to_bl(J[f'joint-{sd}-upper-leg'][None])[0].tolist(), 'ankle': to_bl(J[f'joint-{sd}-ankle'][None])[0].tolist()} for sd in ('l', 'r')},
+            'belt_z': belt_y * S, 'crotch_z': crotch_y * S, 'hem_z': (hem_y if hem_y is not None else ankle_y) * S,
+            'center_y': float(to_bl(((J['joint-l-upper-leg'] + J['joint-r-upper-leg']) / 2)[None])[0, 1]),
+            'hip_half': float(np.abs(pants_P[np.abs(pants_P[:, 1] - hip_y) < 0.3, 0]).max() * S),
+            **out['pants'].get('tailor', {'crease': 0.0025, 'pleat': 0.004, 'break': 0.004}),
+        },
     }
     return objs, meta, rig_ob
 

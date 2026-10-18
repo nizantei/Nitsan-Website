@@ -82,14 +82,23 @@ def fbm(P, freq, octaves=3):
 class Photo:
     def __init__(self):
         a = BUILD / 'analysis'
-        self.rgb = np.asarray(Image.open(a / 'photo.png').convert('RGB'), np.float32) / 255.0
         self.seg = np.asarray(Image.open(a / 'segments.png'))
         self.H, self.W = self.seg.shape
         self.colors = json.loads((a / 'colors.json').read_text())
+        # Colors come from the 4x enhanced photo (enhance_photo.py); coordinates stay in photo pixels.
+        hd = a / 'photo_hd.png'
+        self.rgb = np.asarray(Image.open(hd if hd.exists() else a / 'photo.png').convert('RGB'), np.float32) / 255.0
+        self.k = self.rgb.shape[1] / self.W
+        hair = (self.seg == HAIR)
+        small = np.asarray(Image.open(a / 'photo.png').convert('RGB'), np.float32) / 255.0
+        luma = small @ np.array([0.299, 0.587, 0.114], np.float32)
+        h = hair & (luma < np.percentile(luma[hair], 40))
+        self.hair_rgb = np.median(small[h], 0)  # the strands, not the scalp showing through
 
     def sample(self, px):
-        x = np.clip(px[:, 0], 0, self.W - 1.001)
-        y = np.clip(px[:, 1], 0, self.H - 1.001)
+        H, W = self.rgb.shape[:2]
+        x = np.clip(px[:, 0] * self.k + (self.k - 1) / 2, 0, W - 1.001)
+        y = np.clip(px[:, 1] * self.k + (self.k - 1) / 2, 0, H - 1.001)
         x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
         fx, fy = (x - x0)[:, None], (y - y0)[:, None]
         r = self.rgb
@@ -146,11 +155,13 @@ def in_mouth(X, fr):
     return ((d[:, 0] / (fr['mouth_hw'] * 0.98)) ** 2 + (d[:, 1] / fr['mouth_hh']) ** 2 < 1) & (d[:, 2] < 0.08) & (d[:, 2] > -1.0)  # down the mouth cavity, not to the nape
 
 
-def synth_head(X, base_skin, hair_col, fr, rng_P):
+def synth_head(X, base_skin, hair_col, fr, rng_P, weights=False):
     phi = np.abs(np.arctan2(X[:, 0], X[:, 2] - fr['center_z']))
     h = X[:, 1] - fr['eye'][1]
     hairline = np.interp(phi, [0, 0.5, 0.9, 1.3, 1.6, 1.9, 2.3, np.pi], [0.68, 0.66, 0.55, 0.38, 0.22, -0.4, -1.0, -1.15])
-    hair = smoothstep(-0.06, 0.06, h - hairline)
+    # Buzz cut: dense short hair with scalp showing through, thinning over a soft hairline.
+    hair = smoothstep(-0.18, 0.2, h - hairline + 0.06 * (fbm(rng_P, 25.0, 2) - 0.5))
+    hair *= 0.78 + 0.22 * smoothstep(0.35, 0.65, fbm(rng_P * np.array([1, 0.35, 1]), 160.0, 2))
     stubble = smoothstep(-0.12, -0.35, h) * smoothstep(-1.9, -1.35, h) * smoothstep(2.0, 1.4, phi)
     stubble *= np.where(h < -1.15, smoothstep(1.4, 1.0, phi), 1.0)
     n_fine = fbm(rng_P, 60.0, 2)
@@ -159,8 +170,21 @@ def synth_head(X, base_skin, hair_col, fr, rng_P):
     dark = np.array([0.3, 0.24, 0.21])
     a = (0.55 * stubble * (0.5 + 0.5 * n_fine))[:, None]
     st = skin * (1 - a) + dark * a
-    hr = hair_col[None] * 0.82 * (0.85 + 0.3 * fbm(rng_P, 90.0, 2)[:, None])
-    return st * (1 - hair[:, None]) + hr * hair[:, None]
+    hr = hair_col[None] * 0.8 * (0.8 + 0.4 * fbm(rng_P * np.array([1, 0.3, 1]), 220.0, 2)[:, None])
+    out = st * (1 - hair[:, None]) + hr * hair[:, None]
+    return (out, hair, stubble) if weights else out
+
+
+def lids(X, eyes, out):
+    """Lash lines and the lid rims that turn into the eye socket: dark, as in any close-up.
+    eyes: (center, radius) in MakeHuman units; out: colors (modified in place)."""
+    for c, R in eyes:
+        d = np.linalg.norm(X - c, axis=1) - R
+        up = X[:, 1] > c[1] - 0.02
+        near = d < 0.03
+        lash = np.where(up, smoothstep(0.022, 0.006, d), 0.55 * smoothstep(0.012, 0.004, d)) * near
+        lash *= (X[:, 2] > c[2] - R * 0.6)
+        out[:] = out * (1 - 0.82 * lash[:, None]) + np.array([0.05, 0.035, 0.03]) * 0.82 * lash[:, None]
 
 
 def synth_skin(X, base_skin):
@@ -224,7 +248,7 @@ def run_object(name, photo, meta, ch):
         gate *= smoothstep(0.28, 0.38, luma)
         gate *= smoothstep(meta['belt_y'] - 1.3, meta['belt_y'] - 0.6, X[:, 1])  # photo only shows the top of the trousers
     if name == 'belt':
-        gate *= smoothstep(0.34, 0.26, luma)
+        gate *= 0.0  # the photo's belt has wall-colored glints; synthesized leather reads cleaner
     if name == 'tee':
         gate *= px[:, 1] < meta_belt_px(meta, cam)
     lo, hi = 0.15, 0.7
@@ -251,8 +275,8 @@ def run_object(name, photo, meta, ch):
         flat = 0.5 * (measured(band & (cls == FACE_SKIN), lit) + lit)  # between the shadowed sides and the lit face
         h = X[:, 1] - fr['eye'][1]
         skin = 0.5 * banded(h, sampled, (w > 0.5) & (cls == FACE_SKIN), np.arange(-2.8, 1.01, 0.2), flat) + 0.5 * flat
-        hair = color_of(photo, 'hair')  # whole-photo hair median; well-lit top-of-head texels are mostly scalp
-        synth = synth_head(X, skin, hair, fr, X)
+        hair = 0.75 * photo.hair_rgb + 0.25 * np.array([0.30, 0.22, 0.17])  # a touch warmer: brown, not grey
+        synth, hair_w, stubble_w = synth_head(X, skin, hair, fr, X, weights=True)
         print('  head skin (flat)', (flat * 255).round(), 'hair', (hair * 255).round())
     elif name == 'skin':
         synth = synth_skin(X, measured(band, measured(strong, color_of(photo, 'body_skin'))))
@@ -262,6 +286,11 @@ def run_object(name, photo, meta, ch):
     elif name == 'pants':
         base = srgb(out['pants']['color']) if out['pants'].get('color') else measured(strong, color_of(photo, 'pants'))
         synth = synth_fabric(X, base, grain=0.025)
+        # Stitch lines (seams, fly, pockets, hem) slightly darker; pressed creases catch a little light.
+        import garments
+        disp, seam = garments.pants_features(Xb, meta['tailor'])
+        crease = np.clip(disp / max(meta['tailor']['crease'], 1e-6), 0, 1) * (Xb[:, 2] < meta['tailor']['crotch_z'])
+        synth = synth * (1 - 0.28 * seam[:, None]) * (1 + 0.05 * crease[:, None])
     else:
         synth = synth_fabric(X, srgb(out['belt']['color']), grain=0.08)
 
@@ -273,6 +302,13 @@ def run_object(name, photo, meta, ch):
     w = np.minimum(wmap[mask], w + 0.15) * (w > 0)
 
     color = synth * (1 - w[:, None]) + sampled * w[:, None]
+    if name in ('head', 'skin'):
+        luma_c = (color @ np.array([0.299, 0.587, 0.114]))[:, None]
+        color = luma_c + (color - luma_c) * 0.82  # the photo runs warm and pink; the page's key light adds more
+    if name == 'head':
+        eyes = [(from_bl_points(np.array(e['center'])), e['radius'] * 10) for e in meta['eyes'].values()]
+        lids(X, eyes, color)
+        write_roughness(name, X, mask, w, photo, px, hair_w, stubble_w, fr)
     img = np.zeros((size, size, 3), np.float32)
     img[mask] = np.clip(color, 0, 1)
     # Fill uncovered texels from the nearest covered one (safe mipmapping at island edges).
@@ -284,6 +320,25 @@ def run_object(name, photo, meta, ch):
     dbg[mask] = (w * 255).astype(np.uint8)
     Image.fromarray(dbg).save(OUT / f'{name}_weight.png')
     return float(w.mean())
+
+
+def write_roughness(name, X, mask, w, photo, px, hair_w, stubble_w, fr):
+    """glTF metallic-roughness map for the head (G = roughness): matte hair and stubble, satin
+    skin, a slightly shinier T-zone and lips. Half resolution is plenty."""
+    cls = photo.lookup(photo.seg, px)
+    hair = np.maximum(hair_w * (1 - w), (cls == HAIR) * w)
+    tzone = np.exp(-(X[:, 0] / 0.35) ** 2) * smoothstep(-1.4, -0.6, X[:, 1] - fr['eye'][1])
+    lips = in_mouth(X, fr) | (np.hypot((X[:, 0] - fr['mouth'][0]) / (fr['mouth_hw'] * 1.15), (X[:, 1] - fr['mouth'][1]) / 0.3) < 1)
+    rough = 0.56 - 0.08 * tzone + 0.3 * hair + 0.08 * stubble_w * (1 - hair)
+    rough = np.where(lips, 0.42, rough)
+    size = mask.shape[0]
+    img = np.zeros((size, size), np.float32)
+    img[mask] = np.clip(rough, 0, 1)
+    idx = ndimage.distance_transform_edt(~mask, return_distances=False, return_indices=True)
+    img = img[idx[0], idx[1]]
+    rgb = np.stack([np.ones_like(img), img, np.zeros_like(img)], -1)
+    im = Image.fromarray((rgb * 255 + 0.5).astype(np.uint8))
+    im.resize((size // 2, size // 2), Image.LANCZOS).save(OUT / f'{name}_mr.png')
 
 
 def meta_belt_px(meta, cam):

@@ -17,7 +17,10 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+import bpy  # noqa: F401  (mathutils needs bpy imported first)
 import numpy as np
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 from PIL import Image, ImageDraw
 from scipy.interpolate import RBFInterpolator
 from scipy.optimize import lsq_linear
@@ -87,6 +90,80 @@ def similarity(X, Q, w):
     return s, R, mq - s * R @ mx
 
 
+# Photo eye contours (MediaPipe): corners, upper lid, lower lid; MakeHuman side names.
+LIDS = {
+    'r': {'corners': (33, 133), 'upper': [246, 161, 160, 159, 158, 157, 173], 'lower': [7, 163, 144, 145, 153, 154, 155]},
+    'l': {'corners': (263, 362), 'upper': [466, 388, 387, 386, 385, 384, 398], 'lower': [249, 390, 373, 374, 380, 381, 382]},
+}
+
+
+def snap_lids(V, cam, P, iters=3, reach=0.22, cover=0.006):
+    """Make the eye openings match the photo. Many lid landmarks land on the eyeball when
+    correspondences are found, so the fit moves the eyeball instead of the lids and the eyes stay
+    too open. Here the 3D opening, as the photo camera sees it, is ray-cast column by column and
+    the lids are moved (in the camera's image plane, along the eyeball) by the difference."""
+    base = mh.base_mesh()
+    F, fg = base['faces'], base['face_group']
+    groups = mh.vertex_groups()
+    A = cam[:2, :3]
+    A_pinv = np.linalg.pinv(A)
+    toward = cam[2, :3] / np.linalg.norm(cam[2, :3])  # model-space direction toward the camera
+    body_f = F[fg == 'body']
+    for _ in range(iters):
+        tris = shape.triangles(np.vstack([body_f, F[np.isin(fg, ['helper-l-eye', 'helper-r-eye'])]]))[0]
+        n_body = len(shape.triangles(body_f)[0])
+        bvh = BVHTree.FromPolygons([Vector(v) for v in V], tris.tolist())
+        moved = np.zeros(len(V), bool)
+        for side, lid in LIDS.items():
+            eye = groups[f'helper-{side}-eye']
+            c = V[eye].mean(0)
+            R = np.median(np.linalg.norm(V[eye] - c, axis=1))
+            c0, c1 = P[lid['corners'][0], :2], P[lid['corners'][1], :2]
+            xs = np.linspace(min(c0[0], c1[0]) + 1, max(c0[0], c1[0]) - 1, 24)
+            def contour(ids):
+                pts = np.array([c0] + [P[i, :2] for i in ids] + [c1])
+                pts = pts[np.argsort(pts[:, 0])]
+                return np.interp(xs, pts[:, 0], pts[:, 1])
+            top_photo, bot_photo = contour(lid['upper']), contour(lid['lower'])
+            top3d, bot3d = np.full(len(xs), np.nan), np.full(len(xs), np.nan)
+            for k, x in enumerate(xs):
+                ys = np.arange(min(top_photo[k], bot_photo[k]) - 25, max(top_photo[k], bot_photo[k]) + 25, 0.5)
+                on_eye = []
+                for y in ys:
+                    X = A_pinv @ (np.array([x, y]) - cam[:2, 3])
+                    X = X + toward * ((c - X) @ toward)  # the eye's depth
+                    hit = bvh.ray_cast(Vector(X + toward * 3), Vector(-toward), 6)
+                    on_eye.append(hit[0] is not None and hit[2] >= n_body)
+                on_eye = np.array(on_eye)
+                if on_eye.any():
+                    top3d[k], bot3d[k] = ys[on_eye].min(), ys[on_eye].max()
+            ok = ~np.isnan(top3d)
+            if ok.sum() < 3:
+                continue
+            d_top = np.interp(xs, xs[ok], (top_photo - top3d)[ok])  # + = lid moves down (image y)
+            d_bot = np.interp(xs, xs[ok], (bot_photo - bot3d)[ok])
+            near = np.where(np.linalg.norm(V - c, axis=1) < R + reach)[0]
+            near = near[~np.isin(near, eye)]
+            near = near[(V[near] - c) @ toward > 0.2 * R]
+            px = (A @ V[near].T).T + cam[:2, 3]
+            mid_y = np.interp(px[:, 0], [c0[0], c1[0]] if c0[0] < c1[0] else [c1[0], c0[0]],
+                              [c0[1], c1[1]] if c0[0] < c1[0] else [c1[1], c0[1]])
+            upper = px[:, 1] < mid_y
+            dy = np.where(upper, np.interp(px[:, 0], xs, d_top, left=0, right=0), np.interp(px[:, 0], xs, d_bot, left=0, right=0))
+            dist = np.linalg.norm(V[near] - c, axis=1) - R
+            w = np.clip(1 - dist / reach, 0, 1) ** 2
+            V[near] += (A_pinv @ np.c_[np.zeros(len(near)), dy * w].T).T
+            # Keep the lids on the eyeball, not inside it.
+            rel = V[near] - c
+            r = np.linalg.norm(rel, axis=1)
+            inside = r < R + cover
+            V[near[inside]] = c + rel[inside] / r[inside, None] * (R + cover)
+            moved[near] = True
+            err = np.nanmean(np.abs(np.r_[(top_photo - top3d)[ok], (bot_photo - bot3d)[ok]]))
+            print(f'  lids {side}: mean opening error {err:.1f} px')
+    return V
+
+
 def main():
     ch = shape.character()
     cfg = ch['face']
@@ -151,6 +228,13 @@ def main():
         idx = groups[g]
         disp[idx] = disp[idx].mean(0)
     V = V + disp
+
+    # Eye openings: match the photo exactly (see snap_lids).
+    X = M @ V
+    s_, R_, t_ = similarity(X, Q, lw)
+    cam0 = np.hstack([s_ * R_, t_[:, None]])
+    cam0[1] *= -1
+    V = snap_lids(V, cam0, P)
 
     # Final head camera: photo pixel = cam @ [x, y, z, 1], with y flipped to image-down.
     X = M @ V

@@ -68,9 +68,14 @@
       "color": null,
       "offset": 0.17,
       "thigh_radius": 1.0,
-      "hem_radius": 0.64,
+      "hem_radius": 0.74,
       "waist_above_hip": 0.55,
-      "hem_above_ankle": -0.25
+      "hem_above_ankle": -0.62,
+      "tailor": {
+        "crease": 0.0025,
+        "pleat": 0.004,
+        "break": 0.005
+      }
     },
     "belt": {
       "color": "#1b1b1d",
@@ -78,11 +83,20 @@
       "offset": 0.04
     },
     "sneakers": {
-      "upper": "#f7f6f2",
-      "sole": "#e9e7e1",
-      "laces": "#ffffff",
-      "sole_thickness": 0.32,
-      "margin": 0.09
+      "_doc": "Shopify 'Materials Variants Shoe' (CC BY 4.0), recolored. allowance: shoe length beyond the foot (m). insole: sole height under the foot (m). Colors are linear RGB 0..1.",
+      "allowance": 0.032,
+      "heel_gap": 0.012,
+      "insole": 0.026,
+      "upper_rgb": [
+        0.91,
+        0.9,
+        0.87
+      ],
+      "stripe_rgb": [
+        0.72,
+        0.7,
+        0.66
+      ]
     }
   },
   "pose": {
@@ -109,5 +123,92 @@
     "pole_angle": -90,
     "finger_curl": 30,
     "thumb_curl": 10
+  },
+  "texture": {
+    "_doc": "Photo enhancement for close-ups. face_restore: 0..1 GFPGAN blend over the Real-ESRGAN upscale (higher = cleaner, but drifts from the photo). photo_grain: how much of the photo's own skin detail is put back.",
+    "face_restore": 0.55,
+    "photo_grain": 0.7
+  },
+  "accessories": {
+    "_doc": "Picked on the photo (pixels). necklace: points along the chain, image-left to image-right; clasp: the clasp position. bracelet: a point on the beads (left wrist).",
+    "necklace_px": [
+      [
+        478,
+        688
+      ],
+      [
+        480,
+        705
+      ],
+      [
+        490,
+        725
+      ],
+      [
+        505,
+        737
+      ],
+      [
+        522,
+        747
+      ],
+      [
+        545,
+        757
+      ],
+      [
+        565,
+        762
+      ],
+      [
+        585,
+        763
+      ],
+      [
+        605,
+        758
+      ],
+      [
+        625,
+        750
+      ],
+      [
+        640,
+        737
+      ],
+      [
+        657,
+        720
+      ],
+      [
+        668,
+        708
+      ],
+      [
+        677,
+        690
+      ],
+      [
+        684,
+        670
+      ],
+      [
+        686,
+        655
+      ]
+    ],
+    "clasp_px": [
+      667,
+      710
+    ],
+    "bracelet_px": [
+      435,
+      1112
+    ],
+    "bead_radius": 0.0036
+  },
+  "eyes": {
+    "_doc": "iris: sRGB hex, null = measured from the photo.",
+    "iris": null
   }
 }

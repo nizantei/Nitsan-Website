@@ -199,6 +199,29 @@ def flatten_fly(P, used, V, crotch_y):
     return out
 
 
+def fill_crotch(P, used, V, crotch_y, drop=0.25):
+    """Trouser fabric spans the gap between the thighs instead of following the body into it:
+    lift the front (and back) centre up to the line between the thigh surfaces, and let the
+    crotch seam hang a little lower than the body's."""
+    out = P.copy()
+    Vu = V[used]
+    zc = np.median(Vu[np.abs(Vu[:, 1] - crotch_y) < 0.5, 2])
+    band = (P[:, 1] > crotch_y - 1.2) & (P[:, 1] < crotch_y + 1.6)
+    for sgn_z in (1, -1):
+        side = band & (np.sign(P[:, 2] - zc) == sgn_z)
+        for i in np.where(side & (np.abs(P[:, 0]) < 0.8))[0]:
+            ref = side & (np.abs(P[:, 1] - P[i, 1]) < 0.1) & (np.abs(P[:, 0]) > 0.75) & (np.abs(P[:, 0]) < 1.2)
+            if ref.sum() < 3:
+                continue
+            edge = np.percentile(P[ref, 2] * sgn_z, 70) * sgn_z
+            w = 1 - abs(P[i, 0]) / 0.8
+            if (P[i, 2] - edge) * sgn_z < 0:
+                out[i, 2] = P[i, 2] + (edge - P[i, 2]) * (0.6 + 0.4 * w) - sgn_z * 0.04 * w
+    d = np.hypot(P[:, 0] / 0.9, (P[:, 1] - crotch_y) / 1.4)
+    out[:, 1] -= drop * np.clip(1 - d, 0, 1) ** 2
+    return out
+
+
 def shape_pants(P, used, V, reg, cfg):
     """Turn leg shells into straight trouser legs (minimum radius around the leg axis)."""
     J, _, _ = body_frame(V)
@@ -375,3 +398,154 @@ def mouth_fill(V, corr, depth=0.02):
         faces = faces[:, ::-1]
         faces[n:] = faces[n:][:, [1, 2, 3, 0]]  # keep the fan's repeated center vertex last
     return verts, faces
+
+
+# ---------- tailoring (Blender axes: meters, Z up, front -Y; applied after subdivision) ----------
+
+def pants_features(P, tl):
+    """Per point of the trousers: displacement along the normal (m) and a 'seam' darkness 0..1.
+    tl: leg axes, belt / crotch / hem heights and sizes from build_character (meta['tailor'])."""
+    disp = np.zeros(len(P))
+    seam = np.zeros(len(P))
+    belt_z, crotch_z, hem_z = tl['belt_z'], tl['crotch_z'], tl['hem_z']
+    z = P[:, 2]
+    front = P[:, 1] < tl['center_y']
+    for side, sgn in (('l', 1.0), ('r', -1.0)):
+        on = np.sign(P[:, 0]) == sgn
+        hip, ank = np.array(tl['legs'][side]['hip']), np.array(tl['legs'][side]['ankle'])
+        a = (ank - hip) / np.linalg.norm(ank - hip)
+        rel = P - hip
+        radial = rel - np.outer(rel @ a, a)
+        fwd = np.array([0.0, -1.0, 0.0]) - a[1] * -1 * a
+        fwd /= np.linalg.norm(fwd)
+        lat = np.cross(a, fwd) * sgn
+        theta = np.arctan2(radial @ lat, radial @ fwd)  # 0 = front, ±π = back
+        leg = on & (z < crotch_z + 0.02)
+        below = smoothstep(crotch_z + 0.03, crotch_z - 0.1, z)
+        # Pressed creases, front and back, soft in the geometry and crisp in the color map.
+        cr = np.exp(-(theta / 0.13) ** 2) + 0.7 * np.exp(-((np.abs(theta) - np.pi) / 0.13) ** 2)
+        disp += np.where(leg, tl['crease'] * cr * below, 0)
+        seam += np.where(leg, 0.25 * (np.exp(-(theta / 0.03) ** 2)) * below, 0)
+        # Side seams and inseams; the hem's stitch line.
+        for th in (np.pi / 2, -np.pi / 2):
+            seam += np.where(leg, np.exp(-((theta - th) / 0.025) ** 2) * below, 0)
+        seam += np.where(leg, np.exp(-((z - (hem_z + 0.035)) / 0.0012) ** 2) * (np.abs(theta) < 2.9), 0)
+        # A soft break where the hem rests on the shoe.
+        brk = smoothstep(hem_z + 0.08, hem_z + 0.01, z) * np.exp(-(theta / 0.9) ** 2)
+        disp += np.where(leg, tl['break'] * brk * (0.5 + 0.5 * np.sin((z - hem_z) / 0.028 * 2 * np.pi)), 0)
+        # Two front pleats per side, folding down from the waistband into the crease.
+        x_crease = hip[0] + fwd[0] * 0  # the crease line sits over the leg axis
+        for k, off in enumerate((0.0, 0.045)):
+            xp = x_crease + sgn * off - sgn * 0.012
+            fade = smoothstep(belt_z - (0.2 if k == 0 else 0.13), belt_z - 0.03, z)
+            ridge = np.exp(-((P[:, 0] - xp) / 0.006) ** 2) - 0.6 * np.exp(-((P[:, 0] - xp - sgn * 0.009) / 0.006) ** 2)
+            disp += np.where(front & on, tl['pleat'] * ridge * fade, 0)
+            seam += np.where(front & on, 0.35 * np.exp(-((P[:, 0] - xp - sgn * 0.004) / 0.0015) ** 2) * fade, 0)
+        # Slanted side pockets.
+        p0 = np.array([sgn * tl['hip_half'] * 0.62, belt_z - 0.02])
+        p1 = np.array([sgn * tl['hip_half'] * 0.93, belt_z - 0.17])
+        d = p1 - p0
+        t = np.clip(((np.c_[P[:, 0], z] - p0) @ d) / (d @ d), 0, 1)
+        dist = np.linalg.norm(np.c_[P[:, 0], z] - (p0 + t[:, None] * d), axis=1)
+        pk = np.exp(-(dist / 0.0022) ** 2) * front * on
+        disp -= 0.0012 * pk
+        seam += pk
+    # Fly: a stitched J from the waistband down to the crotch, left of center.
+    fz = (z < belt_z - 0.02) & (z > crotch_z + 0.02) & front
+    jx = 0.028 - 0.02 * smoothstep(crotch_z + 0.06, crotch_z + 0.02, z)
+    seam += np.where(fz, np.exp(-((P[:, 0] - jx) / 0.0015) ** 2), 0)
+    seam += np.where(front & (z < belt_z) & (z > crotch_z), np.exp(-(P[:, 0] / 0.0015) ** 2) * 0.6, 0)
+    return disp, np.clip(seam, 0, 1)
+
+
+def belt_solid(P_pants, cfg, belt_z_mh, n=160, thickness=0.035):
+    """Belt as a closed band with thickness (MakeHuman units), plus its UVs and a buckle frame
+    (rounded rectangle tube) and prong. Returns verts, faces, uvs, uv faces, buckle (v, f)."""
+    band = P_pants[np.abs(P_pants[:, 1] - belt_z_mh) < cfg['height'] * 0.7]
+    center = band.mean(0)
+    ang = np.arctan2(band[:, 0] - center[0], band[:, 2] - center[2])
+    rad = np.hypot(band[:, 0] - center[0], band[:, 2] - center[2])
+    bins = np.linspace(-np.pi, np.pi, n + 1)
+    r = np.full(n, np.nan)
+    for i in range(n):
+        sel = (ang >= bins[i]) & (ang < bins[i + 1])
+        if sel.any():
+            r[i] = rad[sel].max()
+    ok = ~np.isnan(r)
+    r = np.interp(np.arange(n), np.where(ok)[0], r[ok], period=n)
+    r = np.convolve(np.r_[r[-3:], r, r[:3]], np.ones(7) / 7, 'valid') + cfg['offset']
+    th = (bins[:-1] + bins[1:]) / 2
+    h, t = cfg['height'], thickness
+    # cross-section (radial offset, height), counter-clockwise with slightly rounded corners
+    prof = [(0, -h / 2 + 0.01), (0, h / 2 - 0.01), (-0.008, h / 2), (-t + 0.008, h / 2), (-t, h / 2 - 0.01),
+            (-t, -h / 2 + 0.01), (-t + 0.008, -h / 2), (-0.008, -h / 2)]
+    m = len(prof)
+    verts = [[center[0] + np.sin(a) * (ri + dr), belt_z_mh + dz, center[2] + np.cos(a) * (ri + dr)]
+             for a, ri in zip(th, r) for dr, dz in prof]
+    faces, uvs, uvf = [], [], []
+    for i in range(n + 1):
+        for j in range(m + 1):
+            uvs.append([i / n, j / m])
+    for i in range(n):
+        i2 = (i + 1) % n
+        for j in range(m):
+            j2 = (j + 1) % m
+            faces.append([i * m + j, i2 * m + j, i2 * m + j2, i * m + j2])
+            uvf.append([i * (m + 1) + j, (i + 1) * (m + 1) + j, (i + 1) * (m + 1) + j + 1, i * (m + 1) + j + 1])
+    front = int(np.argmin(np.abs(th)))
+    fz = center[2] + r[front] + 0.01
+    bw, bh, tube = 0.46, h * 1.12, 0.022
+    path = []
+    for cx, cy, a0 in ((bw / 2 - 0.06, bh / 2 - 0.06, 0), (-bw / 2 + 0.06, bh / 2 - 0.06, 90),
+                       (-bw / 2 + 0.06, -bh / 2 + 0.06, 180), (bw / 2 - 0.06, -bh / 2 + 0.06, 270)):
+        for k in range(7):
+            a = np.radians(a0 + 90 * k / 6)
+            path.append([center[0] + cx + 0.06 * np.cos(a), belt_z_mh + cy + 0.06 * np.sin(a)])
+    path = np.array(path)
+    bv, bf = [], []
+    seg = 8
+    N = len(path)
+    for i in range(N):
+        tng = path[(i + 1) % N] - path[i - 1]
+        tng /= np.linalg.norm(tng)
+        nrm = np.array([tng[1], -tng[0]])
+        for k in range(seg):
+            a = 2 * np.pi * k / seg
+            off = nrm * np.cos(a) * tube
+            bv.append([path[i, 0] + off[0], path[i, 1] + off[1], fz + np.sin(a) * tube])
+    for i in range(N):
+        for k in range(seg):
+            i2, k2 = (i + 1) % N, (k + 1) % seg
+            bf.append([i * seg + k, i2 * seg + k, i2 * seg + k2, i * seg + k2])
+    # prong: a short bar across the middle of the frame
+    base = len(bv)
+    for x in (-bw / 2 + 0.06, bw / 2 - 0.06):
+        for k in range(seg):
+            a = 2 * np.pi * k / seg
+            bv.append([center[0] + x, belt_z_mh + np.cos(a) * 0.012, fz + 0.012 + np.sin(a) * 0.012])
+    for k in range(seg):
+        k2 = (k + 1) % seg
+        bf.append([base + k, base + k2, base + seg + k2, base + seg + k])
+    return np.array(verts), np.array(faces), np.array(uvs), np.array(uvf), (np.array(bv), np.array(bf))
+
+
+def belt_loops(P_pants, belt_z_mh, cfg, angles=(-2.4, -1.25, -0.42, 0.42, 1.25, 2.4, np.pi)):
+    """Fabric loops standing over the belt (MakeHuman units)."""
+    band = P_pants[np.abs(P_pants[:, 1] - belt_z_mh) < cfg['height'] * 0.7]
+    center = band.mean(0)
+    ang = np.arctan2(band[:, 0] - center[0], band[:, 2] - center[2])
+    rad = np.hypot(band[:, 0] - center[0], band[:, 2] - center[2])
+    verts, faces = [], []
+    w, h, t = 0.09, cfg['height'] + 0.07, 0.015
+    for a in angles:
+        sel = np.abs(np.angle(np.exp(1j * (ang - a)))) < 0.08
+        r = (rad[sel].max() if sel.any() else rad.max()) + cfg['offset'] + 0.006
+        base = len(verts)
+        for dx in (-w / 2, w / 2):
+            for dz in (-h / 2, h / 2):
+                for dr in (0, t):
+                    aa = a + dx / r
+                    verts.append([center[0] + np.sin(aa) * (r + dr - (0.035 if dr == 0 else 0)),
+                                  belt_z_mh + dz, center[2] + np.cos(aa) * (r + dr)])
+        faces += [[base + q for q in f] for f in ([0, 2, 6, 4], [1, 5, 7, 3], [0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6])]
+    return np.array(verts), np.array(faces)

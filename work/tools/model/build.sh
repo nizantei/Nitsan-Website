@@ -9,9 +9,12 @@ quiet() { grep -v "^Fra:\|DeprecationWarning\|use_nodes\|^W0000\|^I0000\|absl::\
 step=${1:-all}
 if [ "$step" = all ]; then
   ./fetch_mpfb.sh
+  ./fetch_assets.sh
   $PY analyze_photo.py 2>&1 | quiet
+  $PY enhance_photo.py 2>&1 | quiet
   $PY face_corr.py 2>&1 | quiet
   $PY fit_face.py 2>&1 | quiet
+  $PY -c 'import json, shoes; shoes.prep_textures(json.load(open("character.json"))["outfit"]["sneakers"])'
   $PY build_character.py 2>&1 | quiet
 fi
 if [ "$step" = all ] || [ "$step" = texture ]; then

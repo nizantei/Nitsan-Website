@@ -13,6 +13,7 @@ export function createFigureUniforms(colors) {
     uReveal: { value: -0.2 },
     uScanY: { value: -1 },
     uScan: { value: 0 },
+    uScanW: { value: 0.03 },
     uHolo: { value: 0 },
     uRim: { value: 1 },
     uRimA: { value: new THREE.Color(colors.a) },
@@ -21,7 +22,7 @@ export function createFigureUniforms(colors) {
   };
 }
 
-export async function loadFigure(url, { height, uniforms, onProgress }) {
+export async function loadFigure(url, { height, uniforms, materials = {}, onProgress }) {
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
   const gltf = await loader.loadAsync(url, (e) => {
@@ -35,6 +36,7 @@ export async function loadFigure(url, { height, uniforms, onProgress }) {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     mats.forEach((m) => {
       if (!patched.has(m)) {
+        Object.assign(m, materials[m.name] ?? {});  // per-material tuning from config.figure.materials
         patchMaterial(m, uniforms);
         patched.add(m);
       }
@@ -58,7 +60,7 @@ export async function loadFigure(url, { height, uniforms, onProgress }) {
 }
 
 const NOISE = /* glsl */ `
-  uniform float uTime, uReveal, uScanY, uScan, uHolo, uRim;
+  uniform float uTime, uReveal, uScanY, uScan, uScanW, uHolo, uRim;
   uniform vec3 uRimA, uRimB, uScanColor;
   varying vec3 vFigWorld;
   float figHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -85,9 +87,9 @@ function patchMaterial(material, uniforms) {
       .replace('#include <emissivemap_fragment>', /* glsl */ `#include <emissivemap_fragment>
         float figFres = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 2.4);
         vec3 figRim = mix(uRimA, uRimB, smoothstep(0.2, 1.7, vFigWorld.y)) * figFres * uRim;
-        float figScan = exp(-pow((vFigWorld.y - uScanY) / 0.03, 2.0)) * uScan;
-        float figLines = smoothstep(0.86, 1.0, sin(vFigWorld.y * 260.0 - uTime * 3.0) * 0.5 + 0.5) * uHolo;
-        totalEmissiveRadiance += figRim + uScanColor * (figScan * 2.5 + figEdgeGlow * 3.0) + uRimA * figLines * (0.35 + figFres);`);
+        float figScan = exp(-pow((vFigWorld.y - uScanY) / uScanW, 2.0)) * uScan;
+        float figLines = smoothstep(0.9, 1.0, sin(vFigWorld.y * 520.0 - uTime * 3.0) * 0.5 + 0.5) * uHolo;
+        totalEmissiveRadiance += figRim + uScanColor * (figScan * 1.4 + figEdgeGlow * 3.0) + uRimA * figLines * (0.22 + figFres * 0.6);`);
   };
   material.customProgramCacheKey = () => 'work-figure-fx';
   material.needsUpdate = true;

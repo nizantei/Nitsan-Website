@@ -14,6 +14,7 @@
   "chapters": [
     {
       "id": "apps",
+      "station": "head",
       "label": "Apps",
       "title": "Apps I developed",
       "intro": "Products I designed and built end to end. Sample entries: replace them with your real apps.",
@@ -57,6 +58,7 @@
     },
     {
       "id": "talks",
+      "station": "hands",
       "label": "Talks",
       "title": "Talks I gave",
       "intro": "Conference talks, meetups and workshops. Sample entries.",
@@ -88,6 +90,7 @@
     },
     {
       "id": "skills",
+      "station": "legs",
       "label": "Skills",
       "title": "My skill set",
       "intro": "The tools and practices I work with every day.",
@@ -101,6 +104,7 @@
     },
     {
       "id": "certifications",
+      "station": "feet",
       "label": "Certifications",
       "title": "Trainings & certifications",
       "intro": "Courses, trainings and certificates. Sample entries.",

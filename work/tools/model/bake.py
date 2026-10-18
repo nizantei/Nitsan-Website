@@ -13,8 +13,10 @@ from mathutils.bvhtree import BVHTree
 
 import cameras
 
-TEXTURED = {'head': 2048, 'skin': 2048, 'tee': 1024, 'pants': 1024, 'belt': 512}
-SUBDIVIDE = {'head': 1, 'skin': 1, 'tee': 1, 'pants': 1, 'shoe_l': 1, 'shoe_r': 1}
+# Texture size per object (texels are spread evenly, ~0.2 mm on the face at 4096) and
+# subdivision levels (the face fills the screen at the first stop, so the head gets two).
+TEXTURED = {'head': 4096, 'skin': 4096, 'tee': 2048, 'pants': 2048, 'belt': 1024}
+SUBDIVIDE = {'head': 2, 'skin': 2, 'tee': 2, 'pants': 2, 'eye_l': 1, 'eye_r': 1}
 
 
 def apply_modifiers(ob):
@@ -159,8 +161,18 @@ def bake_object(ob, size, outfile):
     bpy.data.materials.remove(mat)
 
 
+def tailor(ob, tl):
+    """Creases, pleats, fly and pocket grooves on the subdivided trousers (garments.pants_features)."""
+    import garments
+    co, no = mesh_arrays(ob)
+    disp, _ = garments.pants_features(co, tl)
+    ob.data.vertices.foreach_set('co', (co + no * disp[:, None]).astype(np.float32).ravel())
+    ob.data.update()
+
+
 def run(objs, meta, build_dir, to_bl, from_bl):
     subdivide(objs)
+    tailor(objs['pants'], meta['tailor'])
     for name in TEXTURED:
         pack_uvs(objs[name])
     visibility(objs, meta, to_bl, from_bl)

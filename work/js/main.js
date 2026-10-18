@@ -6,20 +6,34 @@ import { detectEnv, applyModeClass, COMPACT_QUERY } from './env.js';
 import { loadContent, normalize, renderContent } from './content.js';
 import { createDirector } from './director.js';
 import { createScroller } from './scroller.js';
+import { createStart } from './start.js';
 import { createUI } from './ui.js';
 
 const root = document.documentElement;
 const env = detectEnv();
 let mode = env.mode;
 applyModeClass(mode);
+root.classList.toggle('is-touch', env.touch);
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 const pctEl = document.querySelector('[data-loader-pct]');
 const barEl = document.querySelector('[data-loader-bar]');
 const setProgress = (p) => {
-  pctEl.textContent = `${Math.round(p * 100)}%`;
+  pctEl.textContent = `${Math.round(p * 100)}`.padStart(3, '0');
   barEl.style.transform = `scaleX(${p})`;
 };
+
+// A reload mid-page returns to the same place (and skips the Start screen).
+const SAVED = 'work:scroll';
+const savedY = (() => {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SAVED) || 'null');
+    return saved && saved.hash === location.hash ? +saved.y || 0 : 0;
+  } catch { return 0; }
+})();
+addEventListener('pagehide', () => {
+  try { sessionStorage.setItem(SAVED, JSON.stringify({ y: Math.round(scrollY), hash: location.hash })); } catch { /* storage unavailable */ }
+});
 
 boot().catch((err) => {
   console.error('[work] boot failed', err);
@@ -27,8 +41,8 @@ boot().catch((err) => {
 });
 
 async function boot() {
-  const content = normalize(await loadContent());
-  const dom = renderContent(content);
+  const content = normalize(await loadContent(), CONFIG);
+  const dom = renderContent(content, CONFIG);
 
   let stage = null;
   if (mode !== 'poster') {
@@ -49,8 +63,12 @@ async function boot() {
   const compactQuery = matchMedia(COMPACT_QUERY);
   const director = createDirector({ dom, config: CONFIG });
   const scroller = createScroller({ smooth: mode === 'cinematic' && !env.touch, config: CONFIG });
-  const ui = createUI({ dom, director, scroller, env, getMode: () => mode });
-  const measure = () => director.measure({ mode, compact: compactQuery.matches });
+  const start = createStart({ dom, director, scroller, config: CONFIG, getMode: () => mode });
+  const ui = createUI({ dom, director, scroller, start, env, config: CONFIG, getMode: () => mode });
+  const measure = () => {
+    director.measure({ mode, compact: compactQuery.matches });
+    stage?.setStops(director.stops);
+  };
 
   await document.fonts?.ready;
   measure();
@@ -69,6 +87,7 @@ async function boot() {
     env.reducedQuery.addEventListener('change', (e) => {
       mode = e.matches ? 'static' : 'cinematic';
       applyModeClass(mode);
+      start.release();
       scroller.setSmooth(mode === 'cinematic' && !env.touch);
       stage?.setMotion(mode === 'cinematic');
       ui.reset();
@@ -76,11 +95,13 @@ async function boot() {
     });
   }
 
-  // Deep link (#apps etc.)
+  // Deep link (#apps etc.) or a reload mid-page skips the Start screen.
   const target = location.hash ? dom.chapters.findIndex((c) => `#${c.data.id}` === location.hash) : -1;
-  if (target >= 0) scroller.scrollTo(director.chapterY(target), { immediate: true });
+  if (savedY > 2) scroller.scrollTo(Math.min(savedY, director.maxScroll), { immediate: true });
+  else if (target >= 0) scroller.scrollTo(director.chapterY(target), { immediate: true });
+  else start.arm();
 
-  if (env.debug) window.__work = { director, scroller, get mode() { return mode; } };
+  if (env.debug) window.__work = { director, scroller, start, settle: () => stage?.settle(), get mode() { return mode; } };
 
   setProgress(1);
   root.classList.add('is-loaded', 'is-ready');
@@ -94,10 +115,13 @@ async function boot() {
     scroller.raf(now, dt);
     const state = director.evaluate(scroller.y);
 
-    if (CONFIG.scroll.snap && scroller.smooth && !scroller.busy && scroller.idleFor(now) > 220) {
+    // When the visitor stops between stations, glide onto the nearest one.
+    if (CONFIG.scroll.snap && mode === 'cinematic' && !scroller.busy && !scroller.locked && !start.running
+      && scroller.idleFor(now) > 240 && Math.abs(scroller.velocity) < 60) {
       const snap = director.snapTarget(scroller.y);
-      if (snap !== null) scroller.scrollTo(snap, { duration: 1.1 });
+      if (snap !== null) scroller.scrollTo(snap, { duration: snap < 4 ? 1.4 : 1.1 });
     }
+    start.update(scroller.y, now);
 
     stage?.frame(state, dt, now / 1000, scroller.velocity);
     ui.update(state, { info: env.debug ? stage?.info : null });

@@ -16,7 +16,7 @@ const page = await browser.newPage({ viewport: { width: 1000, height: 1200 }, de
 await page.goto(URL_, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => document.documentElement.classList.contains('is-loaded'), null, { timeout: 60000 });
 await page.waitForTimeout(9000); // let the intro finish, even with software rendering
-await page.addStyleTag({ content: '.backdrop,.labels,main,.topbar,.hud,.loader{display:none!important}html,body{background:transparent!important}' });
+await page.addStyleTag({ content: '.backdrop,.fx,.rail,.labels,main,.topbar,.hud,.loader{display:none!important}html,body{background:transparent!important}' });
 await page.waitForTimeout(500);
 const png = await page.screenshot({ omitBackground: true });
 

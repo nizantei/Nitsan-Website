@@ -1,5 +1,7 @@
 // GPU particle field around the figure. Every particle has a home position in each of four
-// formations; the shader blends between them, so changing shape per section costs nothing on the CPU.
+// formations; the shader blends between them, so changing shape per station costs nothing on the CPU.
+// Most particles are fine dust; a few large, faint ones read as out-of-focus bokeh. Particles fade
+// near the camera and never sit in front of the body, so close-ups stay clean.
 import * as THREE from 'three';
 
 export function createParticles({ count, colors }) {
@@ -12,7 +14,7 @@ export function createParticles({ count, colors }) {
   for (let i = 0; i < count; i++) {
     const u = i / count;
     seed[i] = rnd();
-    size[i] = 0.4 + Math.pow(rnd(), 3) * 1.8;
+    size[i] = 0.3 + Math.pow(rnd(), 9) * 3.4;
 
     // cloud: loose cylinder of dust around the figure
     {
@@ -58,7 +60,7 @@ export function createParticles({ count, colors }) {
     uW: { value: new THREE.Vector4(1, 0, 0, 0) },
     uSpin: { value: 0 },
     uEnergy: { value: 0 },
-    uSize: { value: 26 },
+    uSize: { value: 13 },
     uPixelRatio: { value: 1 },
     uOpacity: { value: 0 },
     uColorA: { value: new THREE.Color(colors.a) },
@@ -78,6 +80,8 @@ export function createParticles({ count, colors }) {
       attribute float aSeed, aSize;
       varying float vSeed;
       varying float vGlow;
+      varying float vSize;
+      varying float vFade;
       void main() {
         vec3 p = aCloud * uW.x + aHelix * uW.y + aShell * uW.z + aRing * uW.w;
         float a = uSpin * (0.6 + aSeed * 0.9) + uTime * (0.03 + aSeed * 0.05);
@@ -86,9 +90,14 @@ export function createParticles({ count, colors }) {
         p.y += sin(uTime * 0.7 + aSeed * 40.0) * 0.03 + uEnergy * (aSeed - 0.3) * 0.5;
         p.xz *= 1.0 + uEnergy * 0.25 * aSeed;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        float depth = -mv.z;
         gl_Position = projectionMatrix * mv;
-        gl_PointSize = uSize * aSize * (1.0 + uEnergy * 0.8) * uPixelRatio / -mv.z;
+        gl_PointSize = min(uSize * aSize * (1.0 + uEnergy * 0.8) * uPixelRatio / depth, 40.0 * uPixelRatio);
+        // Fade out close to the camera and far away, and keep the space in front of the body clear.
+        float front = smoothstep(-0.02, 0.22, p.z) * (1.0 - smoothstep(0.2, 0.42, abs(p.x)));
+        vFade = smoothstep(0.3, 0.9, depth) * smoothstep(14.0, 6.0, depth) * (1.0 - front * 0.94);
         vSeed = aSeed;
+        vSize = aSize;
         vGlow = 0.55 + 0.45 * sin(uTime * 2.0 + aSeed * 60.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -96,13 +105,16 @@ export function createParticles({ count, colors }) {
       uniform float uOpacity;
       varying float vSeed;
       varying float vGlow;
+      varying float vSize;
+      varying float vFade;
       void main() {
         float d = length(gl_PointCoord - 0.5);
-        float a = smoothstep(0.5, 0.0, d);
-        a *= a;
+        float bokeh = smoothstep(1.1, 2.6, vSize);
+        // Dust: a bright core with a soft falloff. Bokeh: a flatter, faint disc.
+        float a = pow(smoothstep(0.5, 0.0, d), mix(2.2, 0.9, bokeh));
         vec3 col = mix(uColorA, uColorB, step(0.72, vSeed));
-        col = mix(col, vec3(1.0), smoothstep(0.15, 0.0, d) * 0.6);
-        gl_FragColor = vec4(col, a * uOpacity * vGlow);
+        col = mix(col, vec3(1.0), smoothstep(0.16, 0.0, d) * 0.5 * (1.0 - bokeh));
+        gl_FragColor = vec4(col, a * uOpacity * vGlow * vFade * mix(1.0, 0.2, bokeh));
         #include <colorspace_fragment>
       }`,
   });

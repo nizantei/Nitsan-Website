@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character viewer</title>
+<meta name="robots" content="noindex">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0c12; color: #cfd3dc; font: 13px/1.4 system-ui, sans-serif; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #ui { position: fixed; left: 12px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  #ui button { background: #1b1e29; color: inherit; border: 1px solid #333849; border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+  #ui button:focus-visible { outline: 2px solid #00d4ff; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "/work/vendor/three.module.min.js", "three/addons": "/work/vendor/three-addons.min.js" } }
+</script>
+</head>
+<body>
+<div id="ui"></div>
+<canvas></canvas>
+<script type="module">
+// Dev viewer for the character (not part of the site): /work/tools/model/viewer.html
+//   ?src=/work/models/nitsan-mobile.glb   ?view=face|chest|hands|belt|knees|feet|full|three-quarter
+// Lighting is a neutral studio setup close to the page's, so close-ups can be judged here.
+import * as THREE from 'three';
+import { GLTFLoader, MeshoptDecoder, RoomEnvironment } from 'three/addons';
+
+const params = new URLSearchParams(location.search);
+const canvas = document.querySelector('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0b0c12');
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+const key = new THREE.DirectionalLight('#fff4e8', 2.2); key.position.set(1.6, 2.6, 3.2); scene.add(key);
+const fill = new THREE.DirectionalLight('#dfe8ff', 0.6); fill.position.set(-3, 1.2, 1.5); scene.add(fill);
+const rim = new THREE.DirectionalLight('#ffffff', 1.4); rim.position.set(-1, 2.5, -3); scene.add(rim);
+const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 50);
+
+const H = 1.83;
+const VIEWS = {  // [height fraction, distance m, horizontal angle deg, fov]
+  full: [0.5, 5.2, 0, 28], 'three-quarter': [0.5, 5.2, 35, 28], face: [0.935, 0.75, 0, 26],
+  'face-34': [0.935, 0.8, 30, 26], chest: [0.76, 1.15, 0, 28], hands: [0.64, 1.1, 0, 28],
+  belt: [0.565, 1.0, 0, 28], knees: [0.3, 1.3, 0, 28], feet: [0.05, 1.0, 12, 28], back: [0.6, 4.6, 180, 28],
+};
+function frame(name) {
+  const [hf, dist, ang, fov] = VIEWS[name] ?? VIEWS.full;
+  const a = THREE.MathUtils.degToRad(ang);
+  camera.fov = fov;
+  camera.position.set(Math.sin(a) * dist, hf * H + (name === 'feet' ? 0.25 : 0.02), Math.cos(a) * dist);
+  camera.lookAt(0, hf * H, 0);
+  camera.updateProjectionMatrix();
+  document.title = `Character viewer · ${name}`;
+}
+const ui = document.querySelector('#ui');
+for (const name of Object.keys(VIEWS)) {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => frame(name);
+  ui.append(b);
+}
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+loader.load(params.get('src') || '/work/models/nitsan.glb', (gltf) => {
+  const model = gltf.scene;
+  const box = new THREE.Box3().setFromObject(model);
+  model.scale.multiplyScalar(H / (box.max.y - box.min.y));
+  box.setFromObject(model);
+  const c = box.getCenter(new THREE.Vector3());
+  model.position.set(-c.x, -box.min.y, -c.z);
+  scene.add(model);
+  frame(params.get('view') || 'full');
+  renderer.setAnimationLoop(() => renderer.render(scene, camera));
+  document.body.dataset.ready = '1';
+});
+</script>
+</body>
+</html>
