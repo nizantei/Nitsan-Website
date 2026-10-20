@@ -79,20 +79,17 @@ Name, tagline, email and outro links are under `meta`.
 
 ## The 3D character
 
-`models/nitsan.glb` (desktop: 10 MB, ~470k triangles, 4096 px face and arm textures) and
-`models/nitsan-mobile.glb` (phones: 6.5 MB, ~220k triangles, half-size textures) are built from
-the photo in `Nitsan photo/` with free tools only, on the CPU: MakeHuman CC0 body, MediaPipe,
-Real-ESRGAN and GFPGAN for a sharper copy of the photo, Blender as a Python module. The
-pipeline, how to rebuild it, and how notes map to settings: `tools/model/README.md`.
-
-The sneakers are Shopify's "Materials Variants Shoe" (CC BY 4.0), recolored; the credit line at
-the bottom of the page (`.outro__credits` in `index.html`) is required by that license.
+`models/nitsan.glb` is a stylized low-poly character (~5k triangles, ~420 KB, one file for every
+device), built from the photo in `Nitsan photo/` with free tools only (MakeHuman CC0 body,
+MediaPipe, Blender as a Python module). The face's facets sit on your fitted face landmarks and
+its colored regions are traced from the photo. The pipeline, how to rebuild it, and how notes
+map to settings: `tools/model/README.md`.
 
 Any glTF works in the page: it is scaled to `CONFIG.model.height`, stood on the floor, and the
 scan, dissolve and rim effects are layered onto its own materials. `CONFIG.figure.materials`
-tunes materials by name (for example how much of the studio environment the tee reflects).
-After changing the model, regenerate the no-WebGL still: `cd tools && npm run serve` (one
-terminal), then `npm run poster`. `tools/model/stations.mjs` renders close-ups of every station.
+tunes materials by name. After changing the model, regenerate the no-WebGL still:
+`cd tools && npm run serve` (one terminal), then `npm run poster`. `tools/model/stations.mjs`
+renders close-ups of every station.
 
 ## How it works
 

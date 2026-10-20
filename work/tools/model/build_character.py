@@ -8,7 +8,8 @@
   - UVs packed per object; position / normal / visibility maps baked for texture.py
 
 Output: build/character.blend, build/bake/*.npz, build/bake/meta.json, build/preview/pose_*.png
-Run:  .venv/bin/python build_character.py [--preview-only]
+Run:  .venv/bin/python build_character.py [--preview-only | --guide]
+  --guide  shapes only (for lowpoly.py): no UV packing, bakes or licensed shoe asset
 """
 import json
 import math
@@ -35,6 +36,7 @@ import shoes
 
 BUILD = HERE / 'build'
 S = 0.1  # MakeHuman decimeters → meters
+GUIDE = '--guide' in sys.argv  # build only the guide shapes for lowpoly.py (no textures)
 
 
 def to_bl(P):
@@ -305,10 +307,11 @@ def build(ch, preview_only=False):
     objs['belt'] = make_object('belt', belt_v, belt_f, belt_uv, belt_uvf, col, recalc=True)
     objs['buckle'] = make_object('buckle', buckle_v, buckle_f, collection=col, recalc=True)
     objs['loops'] = make_object('loops', loops_v, loops_f, collection=col, recalc=True)
-    for side in ('l', 'r'):
-        frame = shoes.foot_frame(V, reg, side, J, floor)
-        frame['floor'] = floor
-        objs[f'shoe_{side}'] = shoes.place(side, frame, out['sneakers'], to_bl, col)
+    if not GUIDE:  # the low-poly model builds its own sneakers
+        for side in ('l', 'r'):
+            frame = shoes.foot_frame(V, reg, side, J, floor)
+            frame['floor'] = floor
+            objs[f'shoe_{side}'] = shoes.place(side, frame, out['sneakers'], to_bl, col)
 
     # Eyes: the posed MakeHuman eyeballs, UVs aimed where the photo shows each iris.
     eyes = {}
@@ -444,7 +447,11 @@ def main():
         preview(objs, meta, 'v1')
         return
     import bake
-    bake.run(objs, meta, BUILD, to_bl, from_bl)
+    if GUIDE:  # the low-poly model only needs the shapes: smooth them, skip UVs and bakes
+        bake.subdivide(objs)
+        bake.tailor(objs['pants'], meta['tailor'])
+    else:
+        bake.run(objs, meta, BUILD, to_bl, from_bl)
     bpy.ops.wm.save_as_mainfile(filepath=str(BUILD / 'character.blend'))
 
 

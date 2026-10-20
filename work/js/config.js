@@ -6,21 +6,21 @@
 export const CONFIG = {
   model: {
     // Built by work/tools/model (see its README). Relative to /work/.
-    url: 'models/nitsan.glb',
-    urlLow: 'models/nitsan-mobile.glb', // used on the low quality tier (phones)
-    height: 1.83, // the model is scaled to this height in meters (1.80 m + sneaker soles)
+    url: 'models/nitsan.glb', // low-poly character, ~5k triangles: one file for every device
+    urlLow: null, // optional lighter model for the low quality tier (phones)
+    height: 1.83, // the model is scaled to this height in meters
   },
 
   figure: {
     rim: 0.14, // fresnel edge light on the figure at rest (brand colors); low, so close-ups keep true skin
     rimTravel: 0.3, // extra rim glow while the camera travels between stations
-    // Per-material tuning, by the material names in the model. envMapIntensity: how much of the
-    // (bright, studio) environment a surface reflects: low keeps the black tee black.
+    // Per-material tuning, by the material names in the model (body: skin, hair, shoes, belt;
+    // cloth: tee and chinos; metal: chain and buckle; beads: bracelet). envMapIntensity: how much
+    // of the studio environment a surface reflects; low keeps the facets' colors clean.
     materials: {
-      tee: { envMapIntensity: 0.3 },
-      pants: { envMapIntensity: 0.75 },
-      head: { envMapIntensity: 0.8 },
-      skin: { envMapIntensity: 0.8 },
+      body: { envMapIntensity: 0.6 },
+      cloth: { envMapIntensity: 0.45 },
+      metal: { envMapIntensity: 0.7 },
     },
   },
 
@@ -57,7 +57,7 @@ export const CONFIG = {
   //   up: camera height above the station point (m); positive looks down a little
   //   formation: particle shape around the figure (cloud | helix | shell | ring)
   stations: {
-    head: { y: 0.935, span: 0.54, width: 0.24, up: 0.02, formation: 'shell', label: 'Head' },
+    head: { y: 0.925, span: 0.56, width: 0.27, up: 0.02, formation: 'shell', label: 'Head' },
     chest: { y: 0.76, span: 1.0, width: 0.58, up: 0.05, formation: 'helix', label: 'Chest' },
     hands: { y: 0.72, span: 1.22, width: 0.58, up: 0.06, formation: 'helix', label: 'Hands' }, // waist-up, like the photo
     waist: { y: 0.56, span: 0.9, width: 0.5, up: 0.06, formation: 'cloud', label: 'Waist' },

@@ -210,5 +210,74 @@
   "eyes": {
     "_doc": "iris: sRGB hex, null = measured from the photo.",
     "iris": null
+  },
+  "lowpoly": {
+    "_doc": "The page's low-poly character (lowpoly.py). Sizes in meters. head_scale / hand_scale: stylized proportions. *_raise / *_sink: how far hair, mustache, beard, brows stand out and eyes / mouth sit in. *_sides: facets around each part. jitter: per-facet brightness variation. Colors are sRGB hex.",
+    "head_scale": 1.18,
+    "hand_scale": 1.12,
+    "jitter": 0.035,
+    "skull_points": 90,
+    "hair_raise": 0.004,
+    "mustache_raise": 0.0035,
+    "beard_raise": 0.0015,
+    "brow_raise": 0.002,
+    "eye_sink": 0.0008,
+    "mouth_sink": 0.0008,
+    "torso_sides": 12,
+    "sleeve_sides": 9,
+    "arm_sides": 7,
+    "pelvis_sides": 12,
+    "leg_sides": 9,
+    "belt_sides": 20,
+    "belt_height": 0.036,
+    "sleeve_t": 0.52,
+    "sole": 0.028,
+    "chain_link": 0.012,
+    "bead": 0.0048,
+    "loop_angles": [
+      -2.3,
+      -1.2,
+      -0.45,
+      0.45,
+      1.2,
+      2.3,
+      3.14159
+    ],
+    "palette": {
+      "skin": "#E2A486",
+      "ear": "#DA977C",
+      "lips": "#C9837A",
+      "teeth": "#F1EAD8",
+      "mouth": "#3B2420",
+      "eyes": "#2B1D17",
+      "brows": "#4E382E",
+      "hair": "#46342B",
+      "beard": "#B08166",
+      "mustache": "#7A5442",
+      "tee": "#2C2D33",
+      "tee_trim": "#3A3B42",
+      "pants": "#CDBA96",
+      "belt": "#1F1F22",
+      "metal": "#BFC1C7",
+      "beads": "#151517",
+      "shoe": "#F2F1EC",
+      "sole": "#E2DFD7",
+      "sole_bottom": "#A7A299",
+      "shoe_lining": "#3A3A3F",
+      "laces": "#B5B1A8",
+      "shoe_accent": "#3A3B42",
+      "sclera": "#E9E1D6"
+    },
+    "shoe_extra": [
+      0.04,
+      0.03
+    ],
+    "chain_lift": 0.006,
+    "eye_scale": [
+      1.12,
+      1.3
+    ],
+    "iris_radius": 0.0065,
+    "neck_scale": 1.12
   }
 }
