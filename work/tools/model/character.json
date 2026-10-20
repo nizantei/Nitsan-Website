@@ -212,23 +212,16 @@
     "iris": null
   },
   "lowpoly": {
-    "_doc": "The page's low-poly character (lowpoly.py). Sizes in meters. head_scale / hand_scale: stylized proportions. *_raise / *_sink: how far hair, mustache, beard, brows stand out and eyes / mouth sit in. *_sides: facets around each part. jitter: per-facet brightness variation. Colors are sRGB hex.",
-    "head_scale": 1.18,
-    "hand_scale": 1.12,
-    "jitter": 0.035,
-    "skull_points": 90,
-    "hair_raise": 0.004,
-    "mustache_raise": 0.0035,
-    "beard_raise": 0.0015,
-    "brow_raise": 0.002,
-    "eye_sink": 0.0008,
-    "mouth_sink": 0.0008,
-    "torso_sides": 12,
-    "sleeve_sides": 9,
-    "arm_sides": 7,
+    "_doc": "The page's low-poly character (lowpoly.py), box-modeled in the style of hand-made low-poly characters. Sizes in meters. head_scale / hand_scale: stylized proportions. face_width: width of the flat face plane relative to the head. hairline: hair edge heights above the eyes at the head's 8 corners (front-right first, round the back). *_sides: facets around each body part. ao_*: baked ambient occlusion. Colors are sRGB hex.",
+    "head_scale": 1.2,
+    "hand_scale": 1.15,
+    "jitter": 0.0,
+    "torso_sides": 8,
+    "sleeve_sides": 8,
+    "arm_sides": 6,
     "pelvis_sides": 12,
-    "leg_sides": 9,
-    "belt_sides": 20,
+    "leg_sides": 8,
+    "belt_sides": 16,
     "belt_height": 0.036,
     "sleeve_t": 0.52,
     "sole": 0.028,
@@ -244,19 +237,19 @@
       3.14159
     ],
     "palette": {
-      "skin": "#E2A486",
-      "ear": "#DA977C",
-      "lips": "#C9837A",
-      "teeth": "#F1EAD8",
+      "skin": "#EC9B70",
+      "ear": "#D9805C",
+      "lips": "#D27E6B",
+      "teeth": "#F3ECE0",
       "mouth": "#3B2420",
-      "eyes": "#2B1D17",
-      "brows": "#4E382E",
-      "hair": "#46342B",
-      "beard": "#B08166",
-      "mustache": "#7A5442",
-      "tee": "#2C2D33",
-      "tee_trim": "#3A3B42",
-      "pants": "#CDBA96",
+      "eyes": "#1E1613",
+      "brows": "#3A2920",
+      "hair": "#3D2B21",
+      "beard": "#6A4936",
+      "mustache": "#4E3529",
+      "tee": "#2A2B30",
+      "tee_trim": "#34353B",
+      "pants": "#C9B18B",
       "belt": "#1F1F22",
       "metal": "#BFC1C7",
       "beads": "#151517",
@@ -266,18 +259,76 @@
       "shoe_lining": "#3A3A3F",
       "laces": "#B5B1A8",
       "shoe_accent": "#3A3B42",
-      "sclera": "#E9E1D6"
+      "glint": "#FFFFFF"
     },
     "shoe_extra": [
       0.04,
       0.03
     ],
     "chain_lift": 0.006,
-    "eye_scale": [
-      1.12,
-      1.3
+    "neck_scale": 1.12,
+    "neck": [
+      0.06,
+      0.052
     ],
-    "iris_radius": 0.0065,
-    "neck_scale": 1.12
+    "nose_scale": 1.12,
+    "eye_size": [
+      0.74,
+      0.011
+    ],
+    "brow": [
+      0.0085,
+      0.006
+    ],
+    "ear_angle": 28,
+    "ear_size": [
+      0.03,
+      0.062
+    ],
+    "hairline": [
+      0.07,
+      0.055,
+      0.012,
+      -0.075,
+      -0.075,
+      0.012,
+      0.055,
+      0.07
+    ],
+    "hair_thickness": 0.005,
+    "beard_span": 98,
+    "beard_thickness": 0.0055,
+    "mustache_thickness": 0.0085,
+    "teeth_height": 0.0135,
+    "ao_samples": 64,
+    "ao_distance": 0.12,
+    "ao_floor": 0.42,
+    "ao_gamma": 0.9,
+    "head_widen": 1.1,
+    "face_planes": {
+      "_doc": "Per ring of the head block, top to bottom (crown, upper skull, forehead, brow, eyes, cheeks, mouth, jaw, chin): front_offset moves the face plane (m, negative = forward), front_width = flat face width / head width.",
+      "front_offset": [
+        0.0,
+        0.0,
+        0.004,
+        -0.003,
+        0.002,
+        0.001,
+        -0.003,
+        -0.001,
+        0.0
+      ],
+      "front_width": [
+        0.7,
+        0.72,
+        0.74,
+        0.76,
+        0.75,
+        0.75,
+        0.64,
+        0.56,
+        0.44
+      ]
+    }
   }
 }

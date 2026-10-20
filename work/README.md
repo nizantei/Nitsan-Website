@@ -79,11 +79,11 @@ Name, tagline, email and outro links are under `meta`.
 
 ## The 3D character
 
-`models/nitsan.glb` is a stylized low-poly character (~5k triangles, ~420 KB, one file for every
-device), built from the photo in `Nitsan photo/` with free tools only (MakeHuman CC0 body,
-MediaPipe, Blender as a Python module). The face's facets sit on your fitted face landmarks and
-its colored regions are traced from the photo. The pipeline, how to rebuild it, and how notes
-map to settings: `tools/model/README.md`.
+`models/nitsan.glb` is a stylized low-poly character (~5k triangles, ~500 KB, one file for every
+device) in the style of hand-made low-poly characters, built from the photo in `Nitsan photo/`
+with free tools only (MakeHuman CC0 body, MediaPipe, Blender as a Python module). Its head is
+box-modeled to measurements of a head fitted to your photo, with the features on your landmarks.
+The pipeline, how to rebuild it, and how notes map to settings: `tools/model/README.md`.
 
 Any glTF works in the page: it is scaled to `CONFIG.model.height`, stood on the floor, and the
 scan, dissolve and rim effects are layered onto its own materials. `CONFIG.figure.materials`

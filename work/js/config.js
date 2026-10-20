@@ -12,7 +12,7 @@ export const CONFIG = {
   },
 
   figure: {
-    rim: 0.14, // fresnel edge light on the figure at rest (brand colors); low, so close-ups keep true skin
+    rim: 0.07, // fresnel edge light on the figure at rest (brand colors); low, so close-ups keep true colors
     rimTravel: 0.3, // extra rim glow while the camera travels between stations
     // Per-material tuning, by the material names in the model (body: skin, hair, shoes, belt;
     // cloth: tee and chinos; metal: chain and buckle; beads: bracelet). envMapIntensity: how much

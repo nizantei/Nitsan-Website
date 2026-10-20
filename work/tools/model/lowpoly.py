@@ -1,18 +1,19 @@
-"""The page's character: a stylized low-poly model (flat-shaded facets, solid colors per region),
-built from scratch on top of the photo-fitted guide body (build/character.blend) so that it keeps
-your proportions, your pose (crossed arms) and your face.
+"""The page's character: a stylized low-poly model in the style of hand-made low-poly characters
+(big planar facets, a beveled block head, features as separate blocks, warm solid colors with a
+fine painted grain and baked ambient occlusion), built from scratch on top of the photo-fitted
+guide body (build/character.blend) so it keeps your proportions, pose and face.
 
-  head      triangulated over your fitted face landmarks plus sparse skull points (spherical
-            Delaunay), colored by region from the photo: hair, stubble, mustache, brows, eyes,
-            teeth, lips, skin. Hair, mustache, beard and brows are raised a few millimeters so
-            they read as faceted shells; eyes and mouth are set in.
-  body      low-sided lofts sampled from the guide surfaces: tee with collar and cuff bands,
-            arms, chinos, belt with loops and buckle
+  head      box-modeled to your measurements: octagonal skull and face planes from the guide's
+            cross-sections (brow ridge, cheeks, muzzle), wedge nose on your nose landmarks, slab
+            brows, plate ears, small dark eyes, buzz-cut shell down to your hairline, a chunky
+            short beard with a mustache bar, and the smile (teeth, lower lip)
+  body      low-sided lofts sampled from the guide: tee with collar and cuff bands, crossed arms,
+            chinos meeting in a center seam, belt with loops and buckle
   hands     blocks along the finger bones (posed)
   extras    sneakers, chain links, bead bracelet
 
-Colors and sizes: character.json → lowpoly. Output: build/nitsan_lowpoly.glb
-(+ build/preview/lowpoly_*.png with --preview).
+Colors and sizes: character.json → lowpoly. Output: build/nitsan_lowpoly.glb, station heights in
+build/lowpoly_stations.json (+ build/preview/lowpoly_*.png with --preview).
 Run:  .venv/bin/python lowpoly.py [--preview]
 """
 import json
@@ -300,260 +301,268 @@ def icosahedron(r):
 
 # ---------- head ----------
 
-OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109]
-EYE_R = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246]
-EYE_L = [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466]
-BROW_R = [70, 63, 105, 66, 107, 55, 65, 52, 53, 46]
-BROW_L = [300, 293, 334, 296, 336, 285, 295, 282, 283, 276]
-LIPS_OUT = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185]
-LIPS_IN = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308, 415, 310, 311, 312, 13, 82, 81, 80, 191]
-NOSE = [168, 6, 195, 4, 1, 2, 98, 327, 64, 294, 129, 358, 49, 279, 48, 278]
-CHEEKS = [50, 280, 123, 352, 205, 425, 187, 411, 147, 376, 116, 345, 118, 347, 36, 266, 101, 330, 207, 427]
-FOREHEAD = [151, 9, 108, 337, 69, 299, 104, 333, 67, 297]
-CHIN = [175, 199, 200, 18, 83, 313, 32, 262, 211, 431, 204, 424]
+# ---------- head: box-modeled to your measurements ----------
+#
+# The style is a beveled block head, as in hand-made low-poly characters: an octagonal skull and
+# face (flat face plane, angled cheeks, flat sides and back), and every feature a separate block:
+# wedge nose, slab brows, plate ears, a buzz-cut shell, a chunky short beard with a mustache
+# bar, the smile (teeth and lower lip), small dark eyes. Sizes and positions are measured on the
+# photo-fitted guide head, so the proportions and the face are yours.
+
+class HeadShape:
+    """Octagonal cross-sections of the guide head, interpolated in height."""
+
+    def __init__(self, g, cfg):
+        H = g.verts('head')
+        self.top = H[:, 2].max()
+        lm = g.landmark
+        self.eye_z = np.mean([e['center'][2] for e in g.meta['eyes'].values()])
+        self.chin_z = lm(152)[2]
+        zs = [self.top - 0.004, self.top - 0.03, lm(10)[2], lm(9)[2], self.eye_z - 0.004, (self.eye_z + lm(1)[2]) / 2 - 0.006,
+              lm(61)[2], (lm(61)[2] + self.chin_z) / 2, self.chin_z + 0.004]
+        rows = []
+        for z in zs:
+            s = np.abs(H[:, 2] - z) < 0.006
+            P = H[s]
+            cheek = (np.abs(P[:, 0]) > 0.02) & (np.abs(P[:, 0]) < 0.04)
+            mid = np.abs(P[:, 0]) < 0.015
+            yf = P[cheek, 1].min() if cheek.any() else P[:, 1].min()
+            yb = P[mid, 1].max() if mid.any() else P[:, 1].max()
+            ws = np.percentile(np.abs(P[np.abs(P[:, 0]) < 0.085, 0]), 92)
+            rows.append([z, yf, yb, ws])
+        R = np.array(rows)
+        R[0, 3] = min(R[0, 3], R[1, 3] * 0.62)  # crown: a smaller top plane
+        R[0, 1] = R[1, 1] + 0.025
+        R[0, 2] = R[1, 2] - 0.02
+        # Sculpted planes: brow ridge forward, eyes set in, cheekbones wide, muzzle forward.
+        st = cfg['face_planes']
+        R[:, 1] += np.array(st['front_offset'])
+        R[:, 3] *= cfg['head_widen']
+        self.R = R
+        self.k = np.array(st['front_width'])  # front plane half width / side half width, per ring
+
+    def params(self, z):
+        R = self.R[::-1]  # increasing z for interp
+        return [np.interp(z, R[:, 0], R[:, k]) for k in (1, 2, 3)]
+
+    def octagon(self, z):
+        """8 points: front-right, side-front-right, side-back-right, back-right, back-left, ..."""
+        yf, yb, ws = self.params(z)
+        kf = np.interp(z, self.R[::-1, 0], self.k[::-1])
+        wf, wb = ws * kf, ws * 0.64
+        c1, c2 = (ws - wf) * 1.05, (ws - wb) * 0.95
+        pts = [(-wf, yf), (-ws, yf + c1), (-ws, yb - c2), (-wb, yb), (wb, yb), (ws, yb - c2), (ws, yf + c1), (wf, yf)]
+        return np.array([[x, y, z] for x, y in pts])
+
+    def surface(self, theta, z):
+        """Point on the octagon at height z, in direction theta (0 = front, + = character's left),
+        and the outward normal of the face it lies on."""
+        O = self.octagon(z)
+        c = np.array([0.0, (O[0, 1] + O[3, 1]) / 2, z])
+        d = np.array([np.sin(theta), -np.cos(theta), 0.0])
+        best = None
+        for i in range(8):
+            a, b = O[i], O[(i + 1) % 8]
+            e = b - a
+            M = np.array([[d[0], -e[0]], [d[1], -e[1]]])
+            if abs(np.linalg.det(M)) < 1e-9:
+                continue
+            t, s = np.linalg.solve(M, (a - c)[:2])
+            if t > 0 and -1e-6 <= s <= 1 + 1e-6 and (best is None or t < best[0]):
+                n = unit(np.array([e[1], -e[0], 0.0]))
+                if n @ d < 0:
+                    n = -n
+                best = (t, c + d * t, n)
+        return best[1], best[2]
 
 
 def head(g, parts, cfg):
     pal = cfg['palette']
-    meta = g.meta
-    eyes_c = np.array([e['center'] for e in meta['eyes'].values()])
-    eye_mid = eyes_c.mean(0)
-    c = eye_mid + np.array([0.0, 0.085, 0.015])  # skull center, behind the eyes
-    hb = g.bvh('head')
-    P, kind = [], []
+    hs = HeadShape(g, cfg)
+    lm = g.landmark
+    out = []  # (verts, faces, color, material) in guide space; scaled together at the end
 
-    def add(p, k):
-        if p is not None:
-            P.append(np.asarray(p, float))
-            kind.append(k)
+    def put(V, F, col, mat='skin'):
+        out.append((np.asarray(V, float), F, col, mat))
 
-    lower_lip = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291]  # the upper lip is under the mustache
-    face_ids = (OVAL[::2] + EYE_R + EYE_L + BROW_R + BROW_L + lower_lip + LIPS_IN + NOSE + CHEEKS + FOREHEAD + CHIN)
-    seen = set()
-    ids_of = {}
-    for i in face_ids:
-        if i in seen:
-            continue
-        seen.add(i)
-        k = 'eye' if i in EYE_R + EYE_L else 'brow' if i in BROW_R + BROW_L else 'inner' if i in LIPS_IN else 'lip' if i in LIPS_OUT else 'face'
-        # Lip contours come straight from the photo (the fitted mouth opening is a little small).
-        q = g.unproject(g.photo_pts[i, :2]) if k in ('inner', 'lip') else g.landmark(i)
-        if q is not None:
-            ids_of[i] = len(P)
-        add(q, k)
+    # Skull and face block.
+    rings = [hs.octagon(z) for z in hs.R[:, 0]]
+    V, F = loft(rings, cap_start=True, cap_end=True)
+    put(V, F, pal['skin'])
+    yface = lambda z: hs.params(z)[0]
 
-    for contour in (EYE_R, EYE_L):
-        idx = [ids_of[i] for i in contour if i in ids_of]
-        E = np.array([P[k] for k in idx])
-        ec = E.mean(0)
-        for k in idx:
-            d = P[k] - ec
-            P[k] = ec + np.array([d[0] * cfg['eye_scale'][0], d[1], d[2] * cfg['eye_scale'][1]])
-    iris_ids = []
-    for contour, iris_lm in ((EYE_R, 468), (EYE_L, 473)):
-        idx = [ids_of[i] for i in contour if i in ids_of]
-        q = g.unproject(g.photo_pts[iris_lm, :2])
-        if q is not None and idx:
-            ec = np.mean([P[k] for k in idx], 0)
-            iris_ids.append(len(P))
-            add(ec + (q - ec) * np.array([1, 0, 1]) * 0.6, 'iris')  # on the eye plane, near the photo's iris
-    pp = g.photo_pts[:, :2]
-    poly = lambda ids: pp[ids]
-    oval_poly = poly(OVAL)
+    # Neck: an octagonal prism from inside the collar up into the head.
+    nz = g.joint('joint-neck')[2]
+    neck = []
+    for z, sx, sy in ((nz - 0.07, 1.0, 1.0), (nz + 0.01, 0.97, 0.98), (hs.chin_z + 0.03, 0.95, 0.95)):
+        hx, hy = cfg['neck'][0] * sx, cfg['neck'][1] * sy
+        cy = -0.022
+        neck.append(np.array([[x, cy + y, z] for x, y in ((-hx * 0.55, -hy), (-hx, -hy * 0.5), (-hx, hy * 0.5), (-hx * 0.55, hy),
+                                                          (hx * 0.55, hy), (hx, hy * 0.5), (hx, -hy * 0.5), (hx * 0.55, -hy))]))
+    V, F = loft(neck)
+    put(V, F, pal['skin'], 'neck')
 
-    # Mustache and beard regions (photo pixels), with a few interior points so they can be raised.
-    m_corner_r = pp[61] + [-7, 7]
-    m_corner_l = pp[291] + [7, 7]
-    must_poly = np.vstack([m_corner_r, pp[[185, 40, 39, 37, 0, 267, 269, 270, 409]], m_corner_l,
-                           pp[327] + [9, 1], pp[[326, 2, 97]], pp[98] + [-9, 1]])
-    beard_poly = np.vstack([pp[[127, 116, 50, 205]], m_corner_r + [0, 4], pp[[146, 91, 181, 84, 17, 314, 405, 321, 375]],
-                            m_corner_l + [0, 4], pp[[425, 280, 345, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152,
-                                                     148, 176, 149, 150, 136, 172, 58, 132, 93, 234]]])
-    for poly_, step, k in ((must_poly, 13, 'must'), (beard_poly, 30, 'beard')):
-        lo, hi = poly_.min(0), poly_.max(0)
-        xs, ys = np.meshgrid(np.arange(lo[0] + step / 2, hi[0], step), np.arange(lo[1] + step / 2, hi[1], step))
-        cand = np.c_[xs.ravel(), ys.ravel()]
-        for px in cand[inside(poly_, cand)]:
-            add(g.unproject(px), k)
+    # Nose: a block wedge from the root to the tip, on your nose landmarks.
+    root, tip, tipu, base = lm(168), lm(1), lm(4), lm(2)
+    ala = abs(lm(327)[0] - lm(98)[0]) / 2 * cfg['nose_scale']
+    yr = yface(root[2])
+    ztip = (tip[2] + tipu[2]) / 2
+    ytip = yface(ztip) + (min(tip[1], tipu[1]) - yface(ztip)) * cfg['nose_scale']
+    zb = base[2] - 0.003
+    nv = np.array([[-0.0075, yr + 0.004, root[2] + 0.004], [0.0075, yr + 0.004, root[2] + 0.004],
+                   [-0.011, ytip, ztip + 0.007], [0.011, ytip, ztip + 0.007],
+                   [-0.012, ytip + 0.004, ztip - 0.008], [0.012, ytip + 0.004, ztip - 0.008],
+                   [-ala, yface(zb) + 0.002, zb + 0.004], [ala, yface(zb) + 0.002, zb + 0.004],
+                   [-ala * 0.8, yface(zb) + 0.004, ztip + 0.012], [ala * 0.8, yface(zb) + 0.004, ztip + 0.012]])
+    nf = [[0, 1, 3, 2], [2, 3, 5, 4], [0, 2, 8], [1, 9, 3], [2, 4, 6, 8], [3, 9, 7, 5], [4, 5, 7, 6]]
+    put(nv, orient(nv, nf, np.array([0, yr + 0.02, (root[2] + zb) / 2])), pal['skin'])
 
-    # Denser lip contours (midpoints from the photo), so triangle edges follow them.
-    for contour, k, closed in ((LIPS_IN, 'inner', True), (lower_lip, 'lip', False)):
-        pts = g.photo_pts[contour, :2]
-        nxt = np.roll(pts, -1, 0) if closed else pts[1:]
-        for a, b in zip(pts if closed else pts[:-1], nxt):
-            for t in (1 / 3, 2 / 3):
-                add(g.unproject(a * (1 - t) + b * t), k)
+    # Eyes: small dark smiling almonds with a catchlight, just in front of the face plane.
+    for side, iris_lm, (a, b) in (('r', 468, (33, 133)), ('l', 473, (263, 362))):
+        c = (lm(a) + lm(b)) / 2
+        w = abs(lm(a)[0] - lm(b)[0]) * cfg['eye_size'][0]
+        h = cfg['eye_size'][1]
+        sgn = -1 if side == 'r' else 1  # outer corner direction
+        cz = c[2] - 0.0015
+        y = min(yface(cz + h / 2), yface(cz - h / 2)) - 0.0012
+        shape = [(-0.5, 0.0), (-0.3, 0.5), (0.3, 0.5), (0.5, 0.08), (0.32, -0.45), (-0.32, -0.45)]
+        ev = np.array([[c[0] + sgn * u * w, y, cz + v * h] for u, v in shape])
+        put(ev, orient(ev, [list(range(6))], ev.mean(0) + np.array([0, 0.01, 0])), pal['eyes'], 'eyes')
+        gx, gz = c[0] + sgn * 0.18 * w, cz + 0.15 * h
+        gv = np.array([[gx - 0.0011, y - 0.0004, gz - 0.0011], [gx + 0.0011, y - 0.0004, gz - 0.0011], [gx + 0.0011, y - 0.0004, gz + 0.0011], [gx - 0.0011, y - 0.0004, gz + 0.0011]])
+        put(gv, orient(gv, [[0, 1, 2, 3]], gv.mean(0) + np.array([0, 0.01, 0])), pal['glint'], 'eyes')
 
-    # Teeth: a row of points along the middle of the mouth opening, so the opening gets its own
-    # triangles (the lips are thin; without these the triangulation zigzags across them).
-    up_in = pp[[78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308]]
-    lo_in = pp[[78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308]]
-    for x in np.linspace(up_in[0, 0], up_in[-1, 0], 9)[1:-1]:
-        yu = np.interp(x, up_in[:, 0], up_in[:, 1])
-        yl = np.interp(x, lo_in[:, 0], lo_in[:, 1])
-        add(g.unproject([x, yu * 0.55 + yl * 0.45]), 'teeth')
+    # Brows: two slabs each, following your brows, standing off the face.
+    for ids in ((107, 105, 70), (336, 334, 300)):
+        pts = [lm(i) for i in ids]
+        lows = [lm(j) for j in ((55, 52, 46) if ids[0] == 107 else (285, 282, 276))]
+        for k in range(2):
+            p0 = (pts[k] + lows[k]) / 2
+            p1 = (pts[k + 1] + lows[k + 1]) / 2
+            zm = (p0[2] + p1[2]) / 2
+            p0[2], p1[2] = zm + (p0[2] - zm) * 0.4 + (0.0015 if k == 0 else 0), zm + (p1[2] - zm) * 0.4
+            mid = (p0 + p1) / 2
+            ax0 = unit(np.array([p1[0] - p0[0], 0.0, p1[2] - p0[2]]))
+            ax2 = np.array([0.0, -1.0, 0.0])
+            ax1 = np.cross(ax2, ax0)
+            hgt = cfg['brow'][0] * (1.15 if k == 0 else 0.95)
+            mid[1] = yface(mid[2]) - cfg['brow'][1] / 2 - 0.001
+            V, F = chamfer_box(mid, np.array([ax0, ax1, ax2]), [np.linalg.norm(p1 - p0) / 2 + (0.002 if k == 0 else -0.002), hgt / 2, cfg['brow'][1] / 2], k=0.25)
+            put(V, F, pal['brows'], 'hair')
 
-    # Skull, sides and back: Fibonacci directions outside the face, plus the ears.
-    N = cfg['skull_points']
-    i = np.arange(N) + 0.5
-    phi = np.arccos(1 - 2 * i / N)
-    th = np.pi * (1 + 5 ** 0.5) * i
-    dirs = np.c_[np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)]  # Blender axes, z up
-    toward_bl = unit(to_bl(g.toward[None])[0])
-    for d in dirs:
-        if d[2] < -0.55:
-            continue  # the neck is sampled separately
-        hit = hb.ray_cast(Vector(c + d * 0.35), Vector(-d), 0.35)
-        if hit[0] is None:
-            continue
-        p = np.array(hit[0])
-        if d @ toward_bl > 0.25 and inside(oval_poly, g.photo_px(p))[0]:
-            continue  # covered by the landmarks
-        add(p, 'skull')
-    for sx in (-1, 1):  # ears: a small fan of directions toward each ear
-        ear_dir = unit(np.array([sx, 0.15, -0.05]))
-        for a in np.linspace(-0.35, 0.35, 4):
-            for b in np.linspace(-0.4, 0.3, 4):
-                d = unit(ear_dir + np.array([0, a, 0]) + np.array([0, 0, b]))
-                hit = hb.ray_cast(Vector(c + d * 0.35), Vector(-d), 0.35)
-                if hit[0] is not None:
-                    add(np.array(hit[0]), 'ear')
+    # Ears: angled plates with an inset, on the sides of the head.
+    for sgn, tr in ((-1, 234), (1, 454)):
+        t = lm(tr)
+        z = t[2] - 0.002
+        yf, yb, ws = hs.params(z)
+        a = np.radians(cfg['ear_angle'])
+        n = np.array([sgn * np.cos(a), -np.sin(a), 0.0])  # facing out and a little forward
+        u = np.array([sgn * np.sin(a), np.cos(a), 0.0])  # toward the back of the head
+        v = np.array([0.0, 0.0, 1.0])
+        o = np.array([sgn * (ws - 0.002), t[1] + 0.012, z])
+        S = cfg['ear_size']
+        outline = [(0.0, 0.5), (0.45, 0.62), (0.85, 0.48), (1.0, 0.12), (0.88, -0.3), (0.5, -0.55), (0.12, -0.5)]
+        front = [o + u * px * S[0] + v * py * S[1] for px, py in outline]
+        back = [p - n * 0.009 for p in front]
+        V = np.array(front + back)
+        m = len(outline)
+        F = [list(range(m)), list(range(2 * m - 1, m - 1, -1))] + [[k, (k + 1) % m, m + (k + 1) % m, m + k] for k in range(m)]
+        put(V, orient(V, F, V.mean(0)), pal['skin'])
+        inner = [o + n * 0.0008 + u * (0.5 + (px - 0.5) * 0.55) * S[0] + v * (py * 0.55 - 0.03) * S[1] for px, py in outline]
+        V = np.array(inner)
+        put(V, orient(V, [list(range(m))], V.mean(0) - n), pal['ear'])
 
-    # Hairline: a ring of points just at the hair edge, so the hair shell gets a clean border.
-    fr = hairline_frame(g, eye_mid, c)
-    for az in np.linspace(-np.pi, np.pi, 28, endpoint=False):
-        h = np.interp(abs(az), fr['phi'], fr['hl']) * S + eye_mid[2]
-        d = unit(np.array([np.sin(az), -np.cos(az), 0.0]) * 0.1 + np.array([0, 0, h - c[2]]))
-        hit = hb.ray_cast(Vector(c + d * 0.35), Vector(-d), 0.35)
-        if hit[0] is not None:
-            add(np.array(hit[0]), 'hairline')
+    # Buzz-cut hair: a shell over the skull down to your hairline, with a visible edge.
+    hl = cfg['hairline']  # heights (m above the eyes) at the octagon's 8 corners, front-right first
+    th = cfg['hair_thickness']
+    O0, O1 = hs.octagon(hs.R[0, 0]), hs.octagon(hs.R[1, 0])
+    centre = lambda z: np.array([0.0, sum(hs.params(z)[:2]) / 2, z])
 
-    # Neck: two rings, down into the collar.
-    neck_top = g.joint('joint-neck') + np.array([0, 0, 0.02])
-    for z, n in ((neck_top[2] + 0.03, 10), (neck_top[2] - 0.035, 10)):
-        cen = np.array([0.0, neck_top[1] + 0.005, z])
-        for p in ring(hb, cen, (0, 0, 1), n, phase=0.0, reach=0.15, scale=cfg['neck_scale']):
-            add(p, 'neck')
+    def offset(p, d):
+        q = p - centre(p[2])
+        q[2] = 0
+        return p + unit(q) * d + np.array([0, 0, d * 0.4])
 
-    P = np.array(P)
-    kind = np.array(kind)
-    # Spherical Delaunay: the convex hull of the directions from the skull center.
-    D = unit(P - c)
-    hull = ConvexHull(D)
-    F = hull.simplices.copy()
-    for f in F:
-        a, b, cc = P[f]
-        if np.cross(b - a, cc - a) @ ((a + b + cc) / 3 - c) < 0:
-            f[[1, 2]] = f[[2, 1]]
+    hair_rings = [np.array([offset(p, th) for p in O0]), np.array([offset(p, th) for p in O1])]
+    for t in (0.35, 0.7, 1.0):
+        r = []
+        for i in range(8):
+            z = O1[i, 2] + (hs.eye_z + hl[i] - O1[i, 2]) * t
+            r.append(offset(hs.octagon(z)[i], th))
+        hair_rings.append(np.array(r))
+    edge = np.array([offset(hs.octagon(hs.eye_z + hl[i])[i], 0.0007) for i in range(8)])
+    hair_rings.append(edge)
+    V, F = loft(hair_rings, cap_start=True)
+    put(V, F, pal['hair'], 'hair')
 
-    # Per-vertex classes for offsets.
-    az = np.arctan2(P[:, 0] - c[0], -(P[:, 1] - c[1]))
-    hrel = (P[:, 2] - eye_mid[2]) / S
-    hl = np.interp(np.abs(az), fr['phi'], fr['hl'])
-    is_hair = (hrel > hl + 0.05) & (kind != 'neck')
-    nrm = unit(P - c)
-    off = np.zeros(len(P))
-    off[is_hair] = cfg['hair_raise']
-    off[kind == 'hairline'] = cfg['hair_raise'] * 0.35
-    off[kind == 'must'] = cfg['mustache_raise']
-    off[kind == 'beard'] = cfg['beard_raise']
-    off[kind == 'brow'] = cfg['brow_raise']
-    off[kind == 'eye'] = -cfg['eye_sink']
-    off[kind == 'iris'] = -cfg['eye_sink'] * 0.3
-    off[kind == 'inner'] = -cfg['mouth_sink']
-    off[kind == 'teeth'] = -cfg['mouth_sink'] * 1.5
-    P = P + nrm * off[:, None]
+    # Beard: a chunky band along the jaw, from the sideburns round the chin, with an under-chin.
+    mz = lm(61)[2]
+    top_c = lm(0)[2] + 0.006  # top of the mustache at the center
+    chin_top = top_c - 0.0105 - cfg['teeth_height'] - 0.007  # beard starts under the lower lip
+    secs = []
+    for theta in np.radians(np.linspace(-cfg['beard_span'], cfg['beard_span'], 13)):
+        at = abs(np.degrees(theta))
+        top = np.interp(at, [0, 16, 30, 55, 80, 100], [chin_top, chin_top + 0.004, mz - 0.002, hs.eye_z - 0.052, hs.eye_z - 0.042, hs.eye_z - 0.036])
+        bot = np.interp(at, [0, 35, 65, 100], [hs.chin_z - 0.004, hs.chin_z + 0.006, hs.chin_z + 0.03, hs.chin_z + 0.055])
+        pt, nt = hs.surface(theta, top)
+        pb, nb = hs.surface(theta, bot)
+        thick = cfg['beard_thickness'] * np.interp(at, [0, 60, 100], [1.0, 0.8, 0.45])
+        under = pb + nb * thick + np.array([0, 0.03, -0.006]) * np.interp(at, [0, 70, 100], [1.0, 0.6, 0.0])
+        secs.append(np.array([pt + nt * 0.0005, pt + nt * thick, pb + nb * thick, under, under + np.array([0, 0.004, 0.004])]))
+    V = np.vstack(secs)
+    m = 5
+    F = [[i * m + k, i * m + k + 1, (i + 1) * m + k + 1, (i + 1) * m + k] for i in range(len(secs) - 1) for k in range(m - 1)]
+    F += [[0, 1, 2, 3, 4][::-1], [(len(secs) - 1) * m + k for k in range(m)]]
+    F = orient(V, F, centre(hs.chin_z + 0.04) + np.array([0, -0.01, 0]))
+    put(V, F, pal['beard'], 'hair')
 
-    # Per-face colors.
-    cen = P[F].mean(1)
-    fn = unit(np.cross(P[F[:, 1]] - P[F[:, 0]], P[F[:, 2]] - P[F[:, 0]]))
-    px = g.photo_px(cen)
-    front = (fn @ toward_bl > 0.05) & ((cen - c) @ toward_bl > 0)
-    col = np.tile(srgb(pal['skin']), (len(F), 1))
-    face_hrel = (cen[:, 2] - eye_mid[2]) / S
-    face_az = np.arctan2(cen[:, 0] - c[0], -(cen[:, 1] - c[1]))
-    hair_f = face_hrel > np.interp(np.abs(face_az), fr['phi'], fr['hl'])
-    # Stubble: below a cheek line from the sideburns down to the mouth corners, front of the ears,
-    # down to just under the jaw.
-    chin_z = g.landmark(152)[2]
-    mc = (g.landmark(61) + g.landmark(291)) / 2
-    mouth_hw = abs(g.landmark(61)[0] - g.landmark(291)[0]) / 2
-    ear_x = 0.075
-    cheek_line = np.interp(np.abs(cen[:, 0]), [mouth_hw + 0.006, ear_x], [mc[2] + 0.012, eye_mid[2] - 0.03])
-    ahead = (cen[:, 1] - c[1]) < 0.0
-    beard_f = ahead & (cen[:, 2] < cheek_line) & (cen[:, 2] > chin_z - 0.03) & ~np.isin(kind[F], ['neck']).all(1)
-    beard_f |= front & inside(beard_poly, px) & (cen[:, 2] < cheek_line)
-    must_f = front & inside(must_poly, px)
-    # Mouth: the opening as the 3D inner-lip vertices project (so it matches the triangles exactly).
-    vpx = g.photo_px(P)
-    order_in = [ids_of[i] for i in LIPS_IN if i in ids_of]
-    order_low = [ids_of[i] for i in lower_lip if i in ids_of]
-    opening = vpx[order_in]
-    lower_band = np.vstack([vpx[[ids_of[i] for i in [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308] if i in ids_of]],
-                            vpx[order_low][::-1]])
-    teeth_f = front & inside(opening, px)
-    lips_f = front & inside(lower_band, px) & ~teeth_f
-    upper_lip = np.zeros(len(F), bool)
-    eye_f = front & (inside(vpx[[ids_of[i] for i in EYE_R if i in ids_of]], px) | inside(vpx[[ids_of[i] for i in EYE_L if i in ids_of]], px))
-    brow_f = front & (inside(pp[BROW_R], px) | inside(pp[BROW_L], px))
-    ear_f = (np.isin(kind[F], ['ear']).sum(1) >= 2) & ~hair_f
-    col[ear_f] = srgb(pal['ear'])
-    col[beard_f] = srgb(pal['beard'])
-    col[lips_f] = srgb(pal['lips'])
-    col[must_f | upper_lip] = srgb(pal['mustache'])
-    col[teeth_f] = srgb(pal['teeth'])
-    col[hair_f] = srgb(pal['hair'])
-    col[brow_f] = srgb(pal['brows'])
-    col[eye_f] = srgb(pal['sclera'])
-    iris_f = eye_f & np.isin(F, iris_ids).any(1)
-    for k in iris_ids:  # iris: the triangles around the iris point, within the iris radius
-        d = np.linalg.norm(cen - P[k], axis=1)
-        iris_f |= eye_f & (d < cfg['iris_radius'])
-    col[iris_f] = srgb(pal['eyes'])
+    # Mustache: a thick bar over the smile, dropping at the corners into the beard.
+    mw = abs(lm(291)[0] - lm(61)[0]) / 2
+    pts = []
+    for x, dz_top, dz_bot in ((-1.1, -0.004, -0.017), (-0.92, 0.0, -0.012), (-0.5, 0.001, -0.0105), (0.0, 0.002, -0.0105),
+                              (0.5, 0.001, -0.0105), (0.92, 0.0, -0.012), (1.1, -0.004, -0.017)):
+        X = x * mw
+        zt, zb_ = top_c + dz_top, top_c + dz_bot
+        y = min(yface(zt), yface(zb_))
+        th_m = cfg['mustache_thickness']
+        pts.append(np.array([[X, y + 0.001, zt], [X, y - th_m, zt - 0.001], [X, y - th_m, zb_], [X, y + 0.001, zb_]]))
+    V = np.vstack(pts)
+    F = [[i * 4 + k, i * 4 + (k + 1) % 4, (i + 1) * 4 + (k + 1) % 4, (i + 1) * 4 + k] for i in range(len(pts) - 1) for k in range(4)]
+    F += [[0, 1, 2, 3], [(len(pts) - 1) * 4 + k for k in (3, 2, 1, 0)]]
+    F = orient(V, F, V.mean(0) + np.array([0, 0.01, 0]))
+    put(V, F, pal['mustache'], 'hair')
 
-    debug_face(g, P, F, col, pp)
-    if '--debug-mouth' in sys.argv:
-        mpx = g.photo_px(cen)
-        sel = np.where(inside(pp[LIPS_OUT], mpx))[0]
-        for i in sel:
-            print(i, kind[F[i]].tolist(), 'teeth', teeth_f[i], 'lips', lips_f[i], 'must', must_f[i], 'front', front[i], round(float(fn[i] @ toward_bl), 2))
+    # The smile: a curved band of teeth under the mustache, the lower lip below it.
+    tw = mw * 0.9
+    t_top = top_c - 0.0095
+    rows_t, rows_l = [], []
+    for x in np.linspace(-1, 1, 7):
+        X = x * tw
+        lift = 0.008 * x * x
+        y = yface(t_top) + 0.0005 + 0.003 * x * x
+        rows_t.append([[X, y, t_top + lift + 0.0005], [X, y, t_top - cfg['teeth_height'] + lift]])
+        lb = t_top - cfg['teeth_height'] + lift
+        rows_l.append([[X * 0.96, y - 0.0015, lb + 0.0006], [X * 0.92, y - 0.0025, lb - 0.0045 * (1 - 0.5 * x * x)]])
+    for rows, col in ((rows_t, pal['teeth']), (rows_l, pal['lips'])):
+        V = np.array(rows).reshape(-1, 3)
+        F = [[i * 2, i * 2 + 1, (i + 1) * 2 + 1, (i + 1) * 2] for i in range(len(rows) - 1)]
+        F = orient(V, F, V.mean(0) + np.array([0, 0.02, 0]))
+        put(V, F, col, 'skin')
 
-    # Stylize: a slightly larger head (scaled about the neck, fading out down the neck).
+    # Bigger head (stylized), scaled about the top of the neck.
     s = cfg['head_scale']
-    pivot = neck_top.copy()
-    w = smoothstep(neck_top[2] - 0.03, neck_top[2] + 0.06, P[:, 2])[:, None]
-    P = pivot + (P - pivot) * (1 + (s - 1) * w)
-    parts.add(P, F.tolist(), col, jitter=cfg['jitter'] * 0.6)
-    return {'center': c, 'scale_pivot': pivot, 'scale': s, 'P': P, 'F': F, 'eyes_z': float(P[iris_ids, 2].mean()) if iris_ids else None}
+    pivot = np.array([0.0, -0.035, hs.chin_z])
+    for V, F, col, mat in out:
+        if mat == 'neck':
+            w = smoothstep(nz - 0.02, hs.chin_z + 0.02, V[:, 2])[:, None]
+            V = pivot + (V - pivot) * (1 + (s - 1) * w)
+            mat = 'skin'
+        else:
+            V = pivot + (V - pivot) * s
+        parts.add(V, F, col, mat=mat, jitter=0)
+    eyes_z = pivot[2] + (hs.eye_z - pivot[2]) * s
+    return {'eyes_z': eyes_z}
 
-
-def debug_face(g, P, F, col, pp):
-    """build/preview/lowpoly_face_debug.png: the head's triangles projected onto the photo."""
-    from PIL import ImageDraw
-    im = Image.open(BUILD / 'analysis' / 'photo.png').convert('RGB')
-    x0, y0, x1, y1 = (pp.min(0) - 40).astype(int).tolist() + (pp.max(0) + 40).astype(int).tolist()
-    im = im.crop((x0, y0, x1, y1)).resize(((x1 - x0) * 3, (y1 - y0) * 3))
-    d = ImageDraw.Draw(im, 'RGBA')
-    px = g.photo_px(P)
-    toward_bl = unit(to_bl(g.toward[None])[0])
-    fn = unit(np.cross(P[F[:, 1]] - P[F[:, 0]], P[F[:, 2]] - P[F[:, 0]]))
-    order = np.argsort((P[F].mean(1) @ toward_bl))
-    for i in order:
-        if fn[i] @ toward_bl < 0.05:
-            continue
-        q = [((px[v, 0] - x0) * 3, (px[v, 1] - y0) * 3) for v in F[i]]
-        c = tuple(int(255 * (min(max(v, 0), 1) ** (1 / 2.2))) for v in col[i]) + (210,)
-        d.polygon(q, fill=c, outline=(0, 0, 0, 90))
-    im.save(BUILD / 'preview' / 'lowpoly_face_debug.png')
-
-
-def hairline_frame(g, eye_mid, c):
-    """Hairline height (dm above the eyes) by azimuth (0 = front, π = back); same curve the
-    realistic texture used, which was matched to the photo."""
-    return {'phi': [0, 0.5, 0.9, 1.3, 1.6, 1.9, 2.3, np.pi], 'hl': [0.68, 0.66, 0.55, 0.38, 0.22, -0.3, -0.75, -0.85]}
-
-
-# ---------- body ----------
 
 def neckline(g, n):
     """The tee's neck opening (its boundary loop near the neck), resampled to n points at the
@@ -658,7 +667,7 @@ def body(g, parts, cfg):
                (el + fo * 0.3, fo), (el + fo * 0.62, fo), (el + fo * 0.92, fo)]
         arings = [ring(skin_b, p, a, cfg['arm_sides'], ref=(0, -1, 0), reach=0.12) for p, a in pts]
         V, F = loft(arings)
-        parts.add(V, F, pal['skin'], mat='body')
+        parts.add(V, F, pal['skin'], mat='skin')
         hand(g, parts, cfg, side)
 
     # Chinos: one tube per leg from the belt down; above the crotch the inner side is flattened
@@ -674,36 +683,22 @@ def body(g, parts, cfg):
                 axis_pt = hip.copy()
             axis_pt[1] = torso_center(g, z, 'pants', 0.1)[1] if z > crotch_z else axis_pt[1]
             axis_pt[2] = z
-            r = ring(pants_b, axis_pt, (0, 0, 1), cfg['leg_sides'], reach=0.25)
+            n = cfg['leg_sides']
+            r = ring(pants_b, axis_pt, (0, 0, 1), n, reach=0.25)
             if z > crotch_z - 0.02:
-                fb = center_line(g, z)
-                inner = r[:, 0] * sgn < 0.0
+                # Above the crotch the two tubes meet: the vertices facing the other leg sit on the
+                # trousers' own front / back center line.
+                ang = 2 * np.pi * (np.arange(n) + 0.5) / n
+                dx = np.sin(ang)  # ring() directions: x component (ref = front, axis = up)
+                fb = center_line(g, z) or (axis_pt[1] - 0.1, axis_pt[1] + 0.1)
+                inner = (dx * sgn < -0.3) | (r[:, 0] * sgn < 0.0)
                 r[inner, 0] = 0.0
-                if fb is not None:
-                    r[inner, 1] = np.clip(r[inner, 1], fb[0], fb[1])
-                    k_front, k_back = np.argmin(r[:, 1]), np.argmax(r[:, 1])
-                    r[k_front, 1] = min(r[k_front, 1], fb[0]) if inner[k_front] else r[k_front, 1]
-                    r[k_back, 1] = max(r[k_back, 1], fb[1]) if inner[k_back] else r[k_back, 1]
+                r[inner, 1] = np.where(np.cos(ang[inner]) > 0, fb[0], fb[1])
             leg.append(r)
         leg[-1] = leg[-1].mean(0) + (leg[-1] - leg[-1].mean(0)) * 1.05  # slight flare at the hem
         V, F = loft(leg)
         parts.add(V, F, pal['pants'], mat='cloth')
         sneaker(g, parts, cfg, side)
-
-    # Seam panels where the leg tubes meet (front fly and back seam).
-    for side_y in (0, 1):
-        rows = []
-        for z in (belt_z + 0.012, belt_z - 0.05, crotch_z + 0.07, crotch_z + 0.015):
-            fb = center_line(g, z)
-            if fb is None:
-                continue
-            y = fb[side_y] + (-0.0015 if side_y == 0 else 0.0015)
-            rows.append(np.array([[-0.03, y + (0.004 if side_y == 0 else -0.004), z], [0.0, y, z], [0.03, y + (0.004 if side_y == 0 else -0.004), z]]))
-        if len(rows) >= 2:
-            V = np.vstack(rows)
-            F = [[i * 3 + k, i * 3 + k + 1, (i + 1) * 3 + k + 1, (i + 1) * 3 + k] for i in range(len(rows) - 1) for k in range(2)]
-            F = orient(V, F, V.mean(0) + np.array([0, 0.05 if side_y == 0 else -0.05, 0]))
-            parts.add(V, F, pal['pants'], mat='cloth')
 
     # Belt: a band with thickness, buckle, loops.
     h = cfg['belt_height']
@@ -740,17 +735,17 @@ def hand(g, parts, cfg, side):
     across = unit(np.cross(nrm, along))
     length = np.linalg.norm(np.mean(knuck, 0) - wr)
     width = np.linalg.norm(knuck[0] - knuck[-1]) + 0.022
-    V, F = chamfer_box(palm_c, np.array([along, across, nrm]), np.array([length / 2 + 0.006, width / 2, 0.015]) * s, k=0.3)
-    parts.add(V, F, pal['skin'], mat='body')
+    V, F = chamfer_box(palm_c, np.array([along, across, nrm]), np.array([length / 2 + 0.006, width / 2, 0.016]) * s, k=0.25)
+    parts.add(V, F, pal['skin'], mat='skin')
     for k in range(1, 6):
         chain = [g.bone(f'finger{k}-{j}.{side}') for j in (1, 2, 3)] + [g.bone(f'finger{k}-3.{side}', tail=True)]
-        thick = (0.0105 if k > 1 else 0.012) * s
+        thick = (0.0115 if k > 1 else 0.013) * s
         for a, b in zip(chain[:-1], chain[1:]):
             ax0 = unit(b - a)
             ax1 = unit(np.cross(nrm, ax0))
             ax2 = np.cross(ax0, ax1)
-            V, F = chamfer_box((a + b) / 2, np.array([ax0, ax1, ax2]), [np.linalg.norm(b - a) / 2 + 0.003, thick, thick * 0.92], k=0.3)
-            parts.add(V, F, pal['skin'], mat='body')
+            V, F = chamfer_box((a + b) / 2, np.array([ax0, ax1, ax2]), [np.linalg.norm(b - a) / 2 + 0.003, thick, thick * 0.92], k=0.22)
+            parts.add(V, F, pal['skin'], mat='skin')
 
 
 def sneaker(g, parts, cfg, side):
@@ -886,22 +881,83 @@ def accessories(g, parts, cfg, head_info):
 
 # ---------- output ----------
 
+MATERIALS = {  # name: (roughness, metallic, coat, grain texture or None)
+    'skin': (0.78, 0.0, 0.0, 'skin'), 'hair': (0.9, 0.0, 0.0, 'hair'), 'eyes': (0.25, 0.0, 0.8, None),
+    'cloth': (0.92, 0.0, 0.0, 'cloth'), 'body': (0.7, 0.0, 0.0, 'cloth'), 'metal': (0.45, 1.0, 0.0, None),
+    'beads': (0.3, 0.0, 0.6, None)}
+GRAIN_TILE = 0.12  # meters per repeat of the grain textures
+
+
+def grain_textures(out, size=512, seed=4):
+    """Subtle, tileable 'painted' grain (values just under 1, multiplied with the facet colors)."""
+    rng = np.random.default_rng(seed)
+    f = np.fft.fftfreq(size)
+    fx, fy = np.meshgrid(f, f)
+
+    def noise(lo, hi, aspect=1.0):
+        k = np.hypot(fx, fy * aspect) + 1e-9
+        spec = (rng.normal(size=(size, size)) + 1j * rng.normal(size=(size, size))) * ((k > 1 / hi) & (k < 1 / lo)) / k
+        n = np.real(np.fft.ifft2(spec))
+        return (n - n.mean()) / (n.std() + 1e-9)
+
+    paths = {}
+    for name, amp, parts in (('skin', 0.035, ((2, 8, 1.0, 0.5), (12, 80, 1.0, 0.8))),
+                             ('hair', 0.08, ((1.5, 5, 0.25, 0.8), (8, 40, 1.0, 0.5))),
+                             ('cloth', 0.06, ((1.5, 4, 1.0, 0.7), (20, 120, 1.0, 0.6)))):
+        v = sum(w * noise(lo, hi, asp) for lo, hi, asp, w in parts)
+        v = np.clip(0.93 + amp * v / 2, 0.75, 1.0)
+        img = (np.repeat(v[..., None], 3, -1) ** (1 / 2.2) * 255 + 0.5).astype(np.uint8)
+        paths[name] = out / f'lowpoly_grain_{name}.png'
+        Image.fromarray(img).save(paths[name])
+    return paths
+
+
+def box_uvs(me):
+    """Per-face planar UVs along the face's dominant axis (fine for a uniform grain)."""
+    co = np.array([v.co[:] for v in me.vertices])
+    uv = me.uv_layers.new(name='UVMap')
+    data = np.zeros((len(me.loops), 2))
+    for poly in me.polygons:
+        ax = int(np.argmax(np.abs(poly.normal)))
+        keep = [i for i in range(3) if i != ax]
+        for li in poly.loop_indices:
+            data[li] = co[me.loops[li].vertex_index][keep] / GRAIN_TILE
+    uv.data.foreach_set('uv', data.astype(np.float32).ravel())
+
+
 def build_scene(parts, cfg):
+    """Blender objects (one per material), flat-shaded, with per-corner colors = facet color ×
+    baked ambient occlusion, a grain texture, and UVs for it."""
     bl.reset()
+    scene = bpy.context.scene
+    grains = grain_textures(BUILD)
     mats = {}
-    for name, (rough, metal, coat) in {'body': (0.72, 0.0, 0.0), 'cloth': (0.86, 0.0, 0.0), 'metal': (0.4, 1.0, 0.0), 'beads': (0.25, 0.0, 0.6)}.items():
+    for name, (rough, metal, coat, grain) in MATERIALS.items():
         m = bpy.data.materials.new(name)
-        b = m.node_tree.nodes['Principled BSDF']
+        nt = m.node_tree
+        b = nt.nodes['Principled BSDF']
         b.inputs['Roughness'].default_value = rough
         b.inputs['Metallic'].default_value = metal
         b.inputs['Coat Weight'].default_value = coat
-        b.inputs['Specular IOR Level'].default_value = 0.35
-        attr = m.node_tree.nodes.new('ShaderNodeVertexColor')
-        attr.layer_name = 'Col'
-        m.node_tree.links.new(attr.outputs['Color'], b.inputs['Base Color'])
+        b.inputs['Specular IOR Level'].default_value = 0.3
+        col = nt.nodes.new('ShaderNodeVertexColor')
+        col.layer_name = 'Col'
+        if grain:
+            tex = nt.nodes.new('ShaderNodeTexImage')
+            tex.image = bpy.data.images.load(str(grains[grain]))
+            mix = nt.nodes.new('ShaderNodeMix')
+            mix.data_type = 'RGBA'
+            mix.blend_type = 'MULTIPLY'
+            mix.inputs['Factor'].default_value = 1.0
+            nt.links.new(tex.outputs['Color'], mix.inputs['A'])
+            nt.links.new(col.outputs['Color'], mix.inputs['B'])
+            nt.links.new(mix.outputs['Result'], b.inputs['Base Color'])
+        else:
+            nt.links.new(col.outputs['Color'], b.inputs['Base Color'])
         m.use_backface_culling = name != 'cloth'
         mats[name] = m
     objs = []
+    face_cols = {}
     for name, gr in parts.groups.items():
         V = np.vstack(gr['v'])
         cols = np.vstack(gr['c'])
@@ -909,14 +965,39 @@ def build_scene(parts, cfg):
         me.from_pydata([tuple(map(float, v)) for v in V], [], gr['f'])
         me.update()
         me.shade_flat()
-        attr = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
-        corner = np.repeat(np.c_[cols, np.ones(len(cols))], [len(p.vertices) for p in me.polygons], axis=0)
-        attr.data.foreach_set('color', corner.astype(np.float32).ravel())
-        me.color_attributes.active_color = attr
+        box_uvs(me)
         ob = bpy.data.objects.new(name, me)
-        bpy.context.scene.collection.objects.link(ob)
+        scene.collection.objects.link(ob)
         me.materials.append(mats[name])
         objs.append(ob)
+        face_cols[name] = cols
+    # Ambient occlusion, baked per face corner (crevices, under the brows, nose and arms).
+    scene.render.engine = 'CYCLES'
+    scene.cycles.device = 'CPU'
+    scene.cycles.samples = cfg['ao_samples']
+    scene.world.light_settings.distance = cfg['ao_distance']
+    for ob in objs:
+        ao = ob.data.color_attributes.new('AO', 'FLOAT_COLOR', 'CORNER')
+        ob.data.color_attributes.active_color = ao
+    bpy.ops.object.select_all(action='DESELECT')
+    for ob in objs:
+        ob.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
+    floor = cfg['ao_floor']
+    for ob in objs:
+        me = ob.data
+        ao = np.empty(len(me.loops) * 4, np.float32)
+        me.color_attributes['AO'].data.foreach_get('color', ao)
+        ao = ao.reshape(-1, 4)[:, 0]
+        per_face = face_cols[ob.name]
+        corner = np.repeat(per_face, [len(p.vertices) for p in me.polygons], axis=0)
+        shade = floor + (1 - floor) * np.clip(ao, 0, 1) ** cfg['ao_gamma']
+        col = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
+        col.data.foreach_set('color', np.c_[corner * shade[:, None], np.ones(len(corner))].astype(np.float32).ravel())
+        me.color_attributes.remove(me.color_attributes['AO'])
+        me.color_attributes.active_color = me.color_attributes['Col']
+        me.color_attributes.render_color_index = me.color_attributes.active_color_index  # → COLOR_0
     return objs
 
 
@@ -973,6 +1054,7 @@ def main():
     out = BUILD / 'nitsan_lowpoly.glb'
     bpy.ops.export_scene.gltf(filepath=str(out), export_format='GLB', export_yup=True, export_apply=True,
                               export_normals=True, export_materials='EXPORT', export_vertex_color='ACTIVE',
+                              export_image_format='WEBP', export_image_quality=85,
                               export_animations=False, export_skins=False)
     print('exported', out.name, round(out.stat().st_size / 1e3), 'KB,', tris, 'triangles')
     # Heights of the page's stations, as fractions of the figure (js/config.js → stations.*.y).

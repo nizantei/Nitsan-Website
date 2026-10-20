@@ -48,13 +48,13 @@ export async function createStage({ canvas, env, content, config, onProgress }) 
     key.shadow.normalBias = 0.015;
     key.shadow.radius = 3;
   }
-  const fill = new THREE.DirectionalLight('#cfd8ff', 0.6);
+  const fill = new THREE.DirectionalLight('#e6ecff', 0.8);
   fill.position.set(-3, 1.3, 2.4);
-  const rimA = new THREE.DirectionalLight(C.a, 1.1);
+  const rimA = new THREE.DirectionalLight(C.a, 0.6);
   rimA.position.set(-3.5, 2.4, -2.6);
-  const rimB = new THREE.DirectionalLight(C.b, 0.8);
+  const rimB = new THREE.DirectionalLight(C.b, 0.35);
   rimB.position.set(3.5, 1.8, -3);
-  scene.add(key, key.target, fill, rimA, rimB, new THREE.HemisphereLight('#3a4a9a', '#05060d', 0.35));
+  scene.add(key, key.target, fill, rimA, rimB, new THREE.HemisphereLight('#8090c0', '#1a1420', 0.55));
 
   const figureUniforms = createFigureUniforms(C);
   const modelUrl = env.quality === 'low' && config.model.urlLow ? config.model.urlLow : config.model.url;
